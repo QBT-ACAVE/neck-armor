@@ -1,30 +1,59 @@
 'use client';
+import { supabase } from './supabase';
 
 export type CatchEntry = {
   id: string;
   count: number;
-  ts: number;       // unix ms
+  ts: number;
   note?: string;
 };
 
-const KEY = 'neck_armor_catches_v1';
+const CACHE_KEY = 'neck_armor_cache_catches';
+const STATE_KEY = 'catches';
 
-export function loadCatches(): CatchEntry[] {
+const cacheGet = (): CatchEntry[] => {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '[]'); } catch { return []; }
+};
+const cacheSet = (list: CatchEntry[]) => {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(list)); } catch {}
+};
+
+let pending: ReturnType<typeof setTimeout> | null = null;
+function flush(list: CatchEntry[]) {
+  cacheSet(list);
+  if (pending) clearTimeout(pending);
+  pending = setTimeout(async () => {
+    try {
+      await supabase().from('app_state').upsert(
+        { key: STATE_KEY, value: list }, { onConflict: 'key' });
+    } catch (e) { console.warn('[catches] upsert failed:', e); }
+  }, 400);
 }
 
-export function saveCatches(list: CatchEntry[]) {
-  if (typeof window === 'undefined') return;
-  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {}
+export function loadCatches(): CatchEntry[] { return cacheGet(); }
+export function saveCatches(list: CatchEntry[]) { flush(list); }
+
+export async function loadCatchesAsync(): Promise<CatchEntry[]> {
+  try {
+    const { data, error } = await supabase()
+      .from('app_state').select('value').eq('key', STATE_KEY).maybeSingle();
+    if (error) throw error;
+    const list = (data?.value as CatchEntry[]) ?? [];
+    cacheSet(list);
+    return list;
+  } catch (e) {
+    console.warn('[catches] fetch failed:', e);
+    return cacheGet();
+  }
 }
 
 export function addCatch(count: number, note?: string): CatchEntry {
   const list = loadCatches();
   const entry: CatchEntry = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    count,
-    ts: Date.now(),
+    count, ts: Date.now(),
     note: note?.trim() || undefined,
   };
   list.push(entry);
@@ -33,21 +62,18 @@ export function addCatch(count: number, note?: string): CatchEntry {
 }
 
 export function deleteCatch(id: string) {
-  const list = loadCatches().filter(e => e.id !== id);
-  saveCatches(list);
+  saveCatches(loadCatches().filter(e => e.id !== id));
 }
 
 export function updateCatch(id: string, patch: Partial<Pick<CatchEntry, 'count' | 'note'>>) {
-  const list = loadCatches().map(e => e.id === id ? { ...e, ...patch } : e);
-  saveCatches(list);
+  saveCatches(loadCatches().map(e => e.id === id ? { ...e, ...patch } : e));
 }
 
-// Aggregations
+// ─── Aggregations (unchanged from original) ──────────────────────
 export type DayBucket = { dateStr: string; date: Date; total: number; entries: CatchEntry[] };
 export type MonthBucket = { monthStr: string; year: number; month: number; total: number; days: number; entries: CatchEntry[] };
 
 const DAY_MS = 86400000;
-
 function dayKey(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -82,7 +108,6 @@ export function groupByMonth(list: CatchEntry[]): MonthBucket[] {
     b.total += e.count;
     b.entries.push(e);
   }
-  // Calculate unique training days per month
   for (const b of map.values()) {
     const uniqueDays = new Set(b.entries.map(e => dayKey(new Date(e.ts))));
     b.days = uniqueDays.size;
@@ -97,21 +122,18 @@ export function getStats(list: CatchEntry[]) {
   const avgPerDay = days ? Math.round(total / days) : 0;
   const avgPerSession = sessions ? Math.round(total / sessions) : 0;
 
-  // Best day
   const dayBuckets = groupByDay(list);
   const bestDay = dayBuckets.length ? dayBuckets.reduce((b, d) => d.total > b.total ? d : b, dayBuckets[0]) : null;
 
-  // This week / this month totals
   const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+  startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const weekTotal = list.filter(e => e.ts >= startOfWeek.getTime()).reduce((s, e) => s + e.count, 0);
   const monthTotal = list.filter(e => e.ts >= startOfMonth.getTime()).reduce((s, e) => s + e.count, 0);
 
-  // Streak (consecutive days with at least 1 catch)
   const dayKeys = new Set(list.map(e => dayKey(new Date(e.ts))));
   let streak = 0;
   const cursor = new Date();

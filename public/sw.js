@@ -1,5 +1,5 @@
-const CACHE = 'neck-armor-v5';
-const ASSETS = ['/', '/workout', '/calendar', '/catches', '/history', '/settings', '/manifest.json'];
+const CACHE = 'neck-armor-v6';
+const ASSETS = ['/', '/workout', '/calendar', '/catches', '/nutrition', '/history', '/settings', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {})));

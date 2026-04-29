@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { loadSettings, saveSettings, type Settings } from '@/lib/storage';
 import { PROGRAM_META } from '@/lib/program';
+import { supabase } from '@/lib/supabase';
 import { getTheme, setTheme as applyTheme, type Theme } from '../components/ThemeProvider';
 import { Sun, Moon, Monitor } from 'lucide-react';
 
@@ -9,6 +10,7 @@ export default function SettingsPage() {
   const [s, setS] = useState<Settings>({ restTimerSound: true, restTimerHaptic: true, pushNotifications: false, autoProgression: true });
   const [notifStatus, setNotifStatus] = useState<string>('');
   const [theme, setThemeState] = useState<Theme>('system');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setS(loadSettings());
@@ -35,36 +37,55 @@ export default function SettingsPage() {
     setNotifStatus(result);
     if (result === 'granted') {
       update({ pushNotifications: true });
-      new Notification('Neck Armor', { body: 'Notifications enabled! Daily reminders coming soon.' });
+      new Notification('Neck Armor', { body: 'Notifications enabled!' });
     }
   };
 
-  const exportData = () => {
-    const data = {
-      progress: localStorage.getItem('neck_armor_v1'),
-      history: localStorage.getItem('neck_armor_history_v1'),
-      settings: localStorage.getItem('neck_armor_settings_v1'),
-      catches: localStorage.getItem('neck_armor_catches_v1'),
-      theme: localStorage.getItem('neck_armor_theme'),
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `neck-armor-${Date.now()}.json`;
-    a.click();
+  const exportData = async () => {
+    setBusy(true);
+    try {
+      const [{ data: state }, { data: nutrition }] = await Promise.all([
+        supabase().from('app_state').select('*'),
+        supabase().from('nutrition_log').select('*'),
+      ]);
+      const data = {
+        app_state: state ?? [],
+        nutrition_log: nutrition ?? [],
+        exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `neck-armor-${Date.now()}.json`;
+      a.click();
+    } catch (e) {
+      alert('Export failed: ' + (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const wipeAll = () => {
-    if (!confirm('Erase ALL workout data? This cannot be undone.')) return;
-    localStorage.removeItem('neck_armor_v1');
-    localStorage.removeItem('neck_armor_history_v1');
-    localStorage.removeItem('neck_armor_catches_v1');
-    location.reload();
+  const wipeAll = async () => {
+    if (!confirm('Erase ALL data (workouts, catches, nutrition, PRs)? This cannot be undone.')) return;
+    setBusy(true);
+    try {
+      await Promise.all([
+        supabase().from('app_state').delete().neq('key', ''),
+        supabase().from('nutrition_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      ]);
+      // Clear local cache
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith('neck_armor_')) localStorage.removeItem(k);
+      }
+      location.reload();
+    } catch (e) {
+      alert('Wipe failed: ' + (e as Error).message);
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="px-4 py-4" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
+    <div className="px-4 py-4 pb-24" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
       <h1 className="text-xl font-medium mb-4 text-app">Settings</h1>
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>APPEARANCE</div>
@@ -116,14 +137,17 @@ export default function SettingsPage() {
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>DATA</div>
       <div className="space-y-2 mb-6">
-        <button onClick={exportData} className="w-full py-2.5 text-sm rounded-md font-medium border"
+        <button onClick={exportData} disabled={busy} className="w-full py-2.5 text-sm rounded-md font-medium border disabled:opacity-50"
           style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
-          Export workout data
+          {busy ? 'Working…' : 'Export all data'}
         </button>
-        <button onClick={wipeAll} className="w-full py-2.5 text-sm rounded-md font-medium border"
+        <button onClick={wipeAll} disabled={busy} className="w-full py-2.5 text-sm rounded-md font-medium border disabled:opacity-50"
           style={{ background: 'var(--accent-red-bg)', borderColor: 'var(--accent-red-border)', color: 'var(--accent-red)' }}>
           Erase all data
         </button>
+        <div className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+          Synced to cloud · accessible from any device
+        </div>
       </div>
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>HOW TO RATE A SET</div>
@@ -143,7 +167,7 @@ export default function SettingsPage() {
       <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
         <div><strong style={{ color: 'var(--text-primary)' }}>{PROGRAM_META.name}</strong> · {PROGRAM_META.subtitle}</div>
         <div>{PROGRAM_META.totalSessions} total sessions · 4 days/week</div>
-        <div className="pt-1" style={{ color: 'var(--text-tertiary)' }}>v1.1.0</div>
+        <div className="pt-1" style={{ color: 'var(--text-tertiary)' }}>v2.0.0 · cloud sync</div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import BottomNav from './components/BottomNav';
 import SWRegister from './components/SWRegister';
+import Hydrator from './components/Hydrator';
 import { ThemeBootstrap, ThemeProvider } from './components/ThemeProvider';
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen">
         <ThemeProvider>
+          <Hydrator />
           <main className="pb-20 max-w-md mx-auto">{children}</main>
           <BottomNav />
           <SWRegister />
