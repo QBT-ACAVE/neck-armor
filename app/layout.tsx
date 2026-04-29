@@ -8,8 +8,14 @@ export const metadata: Metadata = {
   title: 'Neck Armor',
   description: '12-week neck strength program',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Neck Armor' },
-  icons: { apple: '/icon-192.png' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Neck Armor' },
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export const viewport: Viewport = {
@@ -30,8 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <ThemeBootstrap />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
       </head>
       <body className="min-h-screen">
         <ThemeProvider>
