@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+html, body {
+  background: #fafafa;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  color: #18181b;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="text"], input[type="number"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Hide number input arrows */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.5); }
+  100% { box-shadow: 0 0 0 12px rgba(29, 158, 117, 0); }
+}
+
+.timer-pulse { animation: pulse-ring 1.5s ease-out infinite; }
+
+/* Bottom nav safe area */
+.bottom-nav {
+  padding-bottom: calc(8px + var(--safe-bottom));
+}
