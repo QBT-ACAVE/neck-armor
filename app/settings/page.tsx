@@ -44,6 +44,7 @@ export default function SettingsPage() {
       progress: localStorage.getItem('neck_armor_v1'),
       history: localStorage.getItem('neck_armor_history_v1'),
       settings: localStorage.getItem('neck_armor_settings_v1'),
+      catches: localStorage.getItem('neck_armor_catches_v1'),
       theme: localStorage.getItem('neck_armor_theme'),
       exportedAt: new Date().toISOString(),
     };
@@ -58,6 +59,7 @@ export default function SettingsPage() {
     if (!confirm('Erase ALL workout data? This cannot be undone.')) return;
     localStorage.removeItem('neck_armor_v1');
     localStorage.removeItem('neck_armor_history_v1');
+    localStorage.removeItem('neck_armor_catches_v1');
     location.reload();
   };
 
