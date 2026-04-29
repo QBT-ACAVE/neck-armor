@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { SCHEDULE, sessionKey } from '@/lib/program';
-import { loadProgress, saveProgress, logToHistory, suggestWeight, loadSettings } from '@/lib/storage';
+import { loadProgress, saveProgress, logToHistory, suggestWeight, loadSettings, RPE_LABELS } from '@/lib/storage';
 import { ChevronLeft, ChevronRight, Play, RotateCcw, TrendingUp, CheckCircle2 } from 'lucide-react';
 import RestTimer from '../components/RestTimer';
 import VideoModal from '../components/VideoModal';
@@ -172,7 +172,7 @@ function WorkoutScreen() {
               </div>
               <div className="text-base font-medium leading-tight text-app">{ex.name}</div>
               <div className="text-[11px] mt-0.5 mb-2" style={{ color: 'var(--text-secondary)' }}>
-                {ex.equip} · Rest {ex.rest}s · RPE {ex.targetRPE}
+                {ex.equip} · Rest {ex.rest}s · Target: {RPE_LABELS[ex.targetRPE]?.emoji} {RPE_LABELS[ex.targetRPE]?.label}
               </div>
               {sugg && (
                 <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[11px]"
@@ -183,12 +183,12 @@ function WorkoutScreen() {
                 </div>
               )}
 
-              <div className="grid grid-cols-[20px_1fr_1fr_44px_36px] gap-1.5 text-[9px] font-medium tracking-widest py-1.5"
+              <div className="grid grid-cols-[20px_1fr_1fr_56px_36px] gap-1.5 text-[9px] font-medium tracking-widest py-1.5"
                 style={{ color: 'var(--text-tertiary)' }}>
                 <div>SET</div>
                 <div className="text-center">WEIGHT</div>
                 <div className="text-center">REPS</div>
-                <div className="text-center">RPE</div>
+                <div className="text-center">FELT</div>
                 <div className="text-center">LOG</div>
               </div>
 
@@ -197,7 +197,7 @@ function WorkoutScreen() {
                 const data = sessionProgress[key] || {};
                 const placeholderWeight = ex.baseWeight !== null ? String(ex.baseWeight) : '—';
                 return (
-                  <div key={setIdx} className="grid grid-cols-[20px_1fr_1fr_44px_36px] gap-1.5 items-center py-0.5">
+                  <div key={setIdx} className="grid grid-cols-[20px_1fr_1fr_56px_36px] gap-1.5 items-center py-0.5">
                     <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{setIdx + 1}</div>
                     <input
                       type="text"
@@ -217,15 +217,19 @@ function WorkoutScreen() {
                       className="h-9 text-center text-sm rounded-md w-full outline-none focus:ring-2"
                       style={{ background: 'var(--bg-input)' }}
                     />
-                    <select
-                      value={data.rpe || ''}
-                      onChange={e => updateSet(exIdx, setIdx, { rpe: parseInt(e.target.value) || undefined })}
-                      className="h-9 text-center text-xs rounded-md w-full outline-none appearance-none"
+                    <button
+                      onClick={() => {
+                        const cur = data.rpe;
+                        // cycle: undefined → 1 → 2 → 3 → 4 → undefined
+                        const next = cur === undefined ? 1 : cur === 4 ? undefined : cur + 1;
+                        updateSet(exIdx, setIdx, { rpe: next });
+                      }}
+                      className="h-9 rounded-md w-full outline-none text-base flex items-center justify-center"
                       style={{ background: 'var(--bg-input)' }}
+                      aria-label={data.rpe ? RPE_LABELS[data.rpe]?.label : 'Rate this set'}
                     >
-                      <option value="">—</option>
-                      {[5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                      {data.rpe ? RPE_LABELS[data.rpe].emoji : <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>—</span>}
+                    </button>
                     <button
                       onClick={() => toggleSet(exIdx, setIdx)}
                       className="h-9 w-9 mx-auto rounded-md text-base font-medium transition-colors"

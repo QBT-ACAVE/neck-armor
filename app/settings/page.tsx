@@ -124,6 +124,19 @@ export default function SettingsPage() {
         </button>
       </div>
 
+      <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>HOW TO RATE A SET</div>
+      <div className="rounded-lg p-3 mb-6 border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+        <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+          Tap the emoji column after each set. The app uses your ratings to suggest weights.
+        </div>
+        <div className="space-y-1.5 text-sm">
+          <div className="flex items-center gap-2"><span className="text-base">😌</span> <span className="text-app">Easy</span> <span style={{ color: 'var(--text-tertiary)' }}>· could've done a lot more</span></div>
+          <div className="flex items-center gap-2"><span className="text-base">💪</span> <span className="text-app">Just right</span> <span style={{ color: 'var(--text-tertiary)' }}>· challenged but completed</span></div>
+          <div className="flex items-center gap-2"><span className="text-base">🥵</span> <span className="text-app">Hard</span> <span style={{ color: 'var(--text-tertiary)' }}>· barely got through</span></div>
+          <div className="flex items-center gap-2"><span className="text-base">❌</span> <span className="text-app">Failed</span> <span style={{ color: 'var(--text-tertiary)' }}>· couldn't finish reps</span></div>
+        </div>
+      </div>
+
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>ABOUT</div>
       <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
         <div><strong style={{ color: 'var(--text-primary)' }}>{PROGRAM_META.name}</strong> · {PROGRAM_META.subtitle}</div>
