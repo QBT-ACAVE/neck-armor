@@ -60,25 +60,25 @@
   --bg-timer: #1f1f23;
   --bg-timer-track: #3f3f46;
 
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --text-input-placeholder: #52525b;
+  --text-primary: #ffffff;
+  --text-secondary: #d4d4d8;
+  --text-tertiary: #a1a1aa;
+  --text-input-placeholder: #71717a;
   --text-on-color: #ffffff;
   --text-timer: #ffffff;
-  --text-timer-secondary: #a1a1aa;
+  --text-timer-secondary: #d4d4d8;
 
-  --border-primary: #27272a;
-  --border-secondary: #3f3f46;
+  --border-primary: #3f3f46;
+  --border-secondary: #52525b;
 
-  --accent-blue-bg: rgba(59, 130, 246, 0.15);
-  --accent-blue-text: #93c5fd;
-  --accent-blue-muted: #60a5fa;
+  --accent-blue-bg: rgba(59, 130, 246, 0.2);
+  --accent-blue-text: #bfdbfe;
+  --accent-blue-muted: #93c5fd;
 
   --accent-amber: #fbbf24;
   --accent-emerald: #34d399;
-  --accent-red: #f87171;
-  --accent-red-border: rgba(248, 113, 113, 0.3);
+  --accent-red: #fca5a5;
+  --accent-red-border: rgba(248, 113, 113, 0.4);
   --accent-red-bg: #1f1f23;
 
   --header-bg: rgba(24, 24, 27, 0.95);

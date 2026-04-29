@@ -3,10 +3,11 @@ import { useEffect } from 'react';
 
 // Inline theme bootstrap script - prevents flash of wrong theme on load.
 // Reads localStorage before React hydrates and sets the theme attribute.
+// Default is 'dark' if nothing is stored.
 const themeScript = `
 (function() {
   try {
-    var t = localStorage.getItem('neck_armor_theme') || 'system';
+    var t = localStorage.getItem('neck_armor_theme') || 'dark';
     var resolved = t === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
     document.documentElement.setAttribute('data-theme', resolved);
     document.documentElement.style.colorScheme = resolved;
@@ -23,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      const t = localStorage.getItem('neck_armor_theme') || 'system';
+      const t = localStorage.getItem('neck_armor_theme') || 'dark';
       if (t !== 'system') return;
       const resolved = mq.matches ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', resolved);
@@ -38,8 +39,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export type Theme = 'light' | 'dark' | 'system';
 
 export function getTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
-  return (localStorage.getItem('neck_armor_theme') as Theme) || 'system';
+  if (typeof window === 'undefined') return 'dark';
+  return (localStorage.getItem('neck_armor_theme') as Theme) || 'dark';
 }
 
 export function setTheme(t: Theme) {
