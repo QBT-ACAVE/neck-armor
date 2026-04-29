@@ -7,26 +7,116 @@
   --safe-bottom: env(safe-area-inset-bottom);
 }
 
+/* Light theme (default) */
+:root,
+[data-theme="light"] {
+  --bg-primary: #fafafa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f4f4f5;
+  --bg-input: #f4f4f5;
+  --bg-input-focus: #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  --bg-modal: #ffffff;
+  --bg-timer: #18181b;
+  --bg-timer-track: #3f3f46;
+
+  --text-primary: #18181b;
+  --text-secondary: #71717a;
+  --text-tertiary: #a1a1aa;
+  --text-input-placeholder: #a1a1aa;
+  --text-on-color: #ffffff;
+  --text-timer: #ffffff;
+  --text-timer-secondary: #a1a1aa;
+
+  --border-primary: #e4e4e7;
+  --border-secondary: #d4d4d8;
+
+  --accent-blue-bg: #dbeafe;
+  --accent-blue-text: #1d4ed8;
+  --accent-blue-muted: #3b82f6;
+
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --accent-red: #dc2626;
+  --accent-red-border: #fecaca;
+  --accent-red-bg: #ffffff;
+
+  --header-bg: rgba(255, 255, 255, 0.95);
+  --nav-bg: rgba(255, 255, 255, 0.95);
+
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-button: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-tertiary: #27272a;
+  --bg-input: #27272a;
+  --bg-input-focus: #3f3f46;
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+  --bg-modal: #1f1f23;
+  --bg-timer: #1f1f23;
+  --bg-timer-track: #3f3f46;
+
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-input-placeholder: #52525b;
+  --text-on-color: #ffffff;
+  --text-timer: #ffffff;
+  --text-timer-secondary: #a1a1aa;
+
+  --border-primary: #27272a;
+  --border-secondary: #3f3f46;
+
+  --accent-blue-bg: rgba(59, 130, 246, 0.15);
+  --accent-blue-text: #93c5fd;
+  --accent-blue-muted: #60a5fa;
+
+  --accent-amber: #fbbf24;
+  --accent-emerald: #34d399;
+  --accent-red: #f87171;
+  --accent-red-border: rgba(248, 113, 113, 0.3);
+  --accent-red-bg: #1f1f23;
+
+  --header-bg: rgba(24, 24, 27, 0.95);
+  --nav-bg: rgba(24, 24, 27, 0.95);
+
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --shadow-button: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+}
+
 html, body {
-  background: #fafafa;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bottom);
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
-  color: #18181b;
   -webkit-font-smoothing: antialiased;
 }
 
 input[type="text"], input[type="number"] {
   -webkit-appearance: none;
   appearance: none;
+  color: var(--text-primary);
 }
 
-/* Hide number input arrows */
+input[type="text"]::placeholder, input[type="number"]::placeholder {
+  color: var(--text-input-placeholder);
+}
+
+select {
+  color: var(--text-primary);
+}
+
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -41,7 +131,18 @@ input[type=number] { -moz-appearance: textfield; }
 
 .timer-pulse { animation: pulse-ring 1.5s ease-out infinite; }
 
-/* Bottom nav safe area */
 .bottom-nav {
   padding-bottom: calc(8px + var(--safe-bottom));
 }
+
+/* Utility classes that use theme variables */
+.bg-app { background: var(--bg-primary); }
+.bg-card { background: var(--bg-secondary); }
+.bg-input { background: var(--bg-input); }
+.bg-input:focus { background: var(--bg-input-focus); }
+.text-app { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.border-app { border-color: var(--border-primary); }
+.header-bg { background: var(--header-bg); }
+.nav-bg { background: var(--nav-bg); }

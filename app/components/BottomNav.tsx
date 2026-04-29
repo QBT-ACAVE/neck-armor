@@ -13,13 +13,14 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-zinc-200 bottom-nav z-20">
+    <nav className="fixed bottom-0 left-0 right-0 backdrop-blur nav-bg border-t border-app bottom-nav z-20">
       <div className="max-w-md mx-auto grid grid-cols-4 pt-2">
         {TABS.map(t => {
           const active = pathname.startsWith(t.href);
           const Icon = t.icon;
           return (
-            <Link key={t.href} href={t.href} className={`flex flex-col items-center gap-0.5 py-1 ${active ? 'text-zinc-900' : 'text-zinc-400'}`}>
+            <Link key={t.href} href={t.href} className="flex flex-col items-center gap-0.5 py-1"
+              style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
               <Icon size={20} />
               <span className="text-[10px]">{t.label}</span>
             </Link>

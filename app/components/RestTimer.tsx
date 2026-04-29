@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { X, SkipForward } from 'lucide-react';
+import { SkipForward } from 'lucide-react';
 import { loadSettings } from '@/lib/storage';
 
 export default function RestTimer({ duration, onComplete, onSkip }: { duration: number; onComplete: () => void; onSkip: () => void }) {
@@ -10,7 +10,6 @@ export default function RestTimer({ duration, onComplete, onSkip }: { duration: 
   useEffect(() => {
     if (remaining <= 0) {
       const settings = loadSettings();
-      // Beep
       if (settings.restTimerSound && typeof window !== 'undefined') {
         try {
           const ctx = audioCtxRef.current || new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -29,7 +28,6 @@ export default function RestTimer({ duration, onComplete, onSkip }: { duration: 
           });
         } catch {}
       }
-      // Haptic
       if (settings.restTimerHaptic && 'vibrate' in navigator) {
         navigator.vibrate([100, 50, 100, 50, 200]);
       }
@@ -46,18 +44,21 @@ export default function RestTimer({ duration, onComplete, onSkip }: { duration: 
 
   return (
     <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
-      <div className="bg-zinc-900 text-white rounded-xl shadow-2xl p-4 timer-pulse">
+      <div className="rounded-xl shadow-2xl p-4 timer-pulse"
+        style={{ background: 'var(--bg-timer)', color: 'var(--text-timer)' }}>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs uppercase tracking-widest text-zinc-400">Rest</div>
-          <button onClick={onSkip} className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white">
+          <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-timer-secondary)' }}>Rest</div>
+          <button onClick={onSkip} className="flex items-center gap-1 text-xs hover:opacity-80"
+            style={{ color: 'var(--text-timer-secondary)' }}>
             Skip <SkipForward size={12} />
           </button>
         </div>
         <div className="flex items-baseline justify-center gap-1 mb-3">
           <span className="text-5xl font-light tabular-nums">{mins}:{String(secs).padStart(2, '0')}</span>
         </div>
-        <div className="h-1 bg-zinc-700 rounded-full overflow-hidden">
-          <div className="h-full bg-emerald-500 transition-all duration-1000 ease-linear" style={{ width: `${pct}%` }} />
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-timer-track)' }}>
+          <div className="h-full transition-all duration-1000 ease-linear"
+            style={{ width: `${pct}%`, background: 'var(--accent-emerald)' }} />
         </div>
       </div>
     </div>

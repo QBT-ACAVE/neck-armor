@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import BottomNav from './components/BottomNav';
 import SWRegister from './components/SWRegister';
+import { ThemeBootstrap, ThemeProvider } from './components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Neck Armor',
@@ -16,22 +17,28 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#fafafa',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+  ],
   viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <ThemeBootstrap />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-screen">
-        <main className="pb-20 max-w-md mx-auto">{children}</main>
-        <BottomNav />
-        <SWRegister />
+        <ThemeProvider>
+          <main className="pb-20 max-w-md mx-auto">{children}</main>
+          <BottomNav />
+          <SWRegister />
+        </ThemeProvider>
       </body>
     </html>
   );

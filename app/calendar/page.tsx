@@ -15,10 +15,10 @@ export default function CalendarPage() {
 
   return (
     <div className="px-4 py-4" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
-      <h1 className="text-xl font-medium mb-1">12-Week Plan</h1>
-      <div className="text-xs text-zinc-500 mb-3">Overall: {overallPct}%</div>
-      <div className="h-1 bg-zinc-200 rounded-full overflow-hidden mb-5">
-        <div className="h-full bg-blue-600" style={{ width: `${overallPct}%` }} />
+      <h1 className="text-xl font-medium mb-1 text-app">12-Week Plan</h1>
+      <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Overall: {overallPct}%</div>
+      <div className="h-1 rounded-full overflow-hidden mb-5" style={{ background: 'var(--bg-tertiary)' }}>
+        <div className="h-full" style={{ width: `${overallPct}%`, background: 'var(--accent-blue-muted)' }} />
       </div>
 
       {Array.from({ length: 12 }).map((_, wIdx) => {
@@ -27,7 +27,7 @@ export default function CalendarPage() {
         return (
           <div key={wk} className="mb-3">
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="text-[10px] font-medium tracking-widest text-zinc-500">WEEK {wk}</div>
+              <div className="text-[10px] font-medium tracking-widest" style={{ color: 'var(--text-secondary)' }}>WEEK {wk}</div>
               <div className="text-[10px] tracking-wider px-1.5 py-0.5 rounded-full"
                 style={{ background: `${ph.color}1f`, color: ph.color }}>{ph.name}</div>
             </div>
@@ -44,9 +44,9 @@ export default function CalendarPage() {
                   <button key={d} onClick={() => router.push(`/workout?idx=${idx}`)}
                     className="py-2.5 px-1 rounded-lg border text-xs font-medium"
                     style={{
-                      background: isDone ? `${ph.color}1f` : 'white',
-                      borderColor: isDone ? ph.color : '#e4e4e7',
-                      color: isDone ? ph.color : '#18181b',
+                      background: isDone ? `${ph.color}1f` : 'var(--bg-secondary)',
+                      borderColor: isDone ? ph.color : 'var(--border-primary)',
+                      color: isDone ? ph.color : 'var(--text-primary)',
                     }}>
                     <div>{sess.dayName}</div>
                     <div className="text-[9px] mt-0.5 opacity-60">{isDone ? '✓ done' : `${doneS}/${totalS}`}</div>

@@ -77,7 +77,6 @@ function WorkoutScreen() {
   };
 
   const completeWorkout = () => {
-    // Log any sets that have data but weren't marked done
     session.exercises.forEach((ex, exIdx) => {
       for (let setIdx = 0; setIdx < ex.sets; setIdx++) {
         const key = `${exIdx}_${setIdx}`;
@@ -90,7 +89,6 @@ function WorkoutScreen() {
       }
     });
 
-    // Mark session complete
     setProgress((p: any) => ({
       ...p,
       [sKey]: { ...p[sKey], __complete: { done: true, ts: Date.now(), partialFinish: completedSets < totalSets } },
@@ -100,7 +98,6 @@ function WorkoutScreen() {
     setShowCompleteConfirm(false);
     setCompleted(true);
 
-    // Auto-advance after 2 seconds
     setTimeout(() => {
       if (idx < SCHEDULE.length - 1) {
         router.push(`/workout?idx=${idx + 1}`);
@@ -111,39 +108,38 @@ function WorkoutScreen() {
   return (
     <div className="min-h-screen pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-zinc-200" style={{ paddingTop: 'var(--safe-top)' }}>
+      <div className="sticky top-0 z-10 backdrop-blur header-bg border-b border-app" style={{ paddingTop: 'var(--safe-top)' }}>
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-center justify-between mb-1">
             <button onClick={() => router.push(`/workout?idx=${Math.max(0, idx - 1)}`)} disabled={idx === 0}
-              className="p-1.5 -ml-1.5 disabled:opacity-30">
+              className="p-1.5 -ml-1.5 disabled:opacity-30 text-app">
               <ChevronLeft size={20} />
             </button>
             <div className="text-center">
-              <div className="text-xl font-medium tracking-tight">
-                WEEK {session.week} <span className="text-zinc-400">DAY {session.day}</span>
+              <div className="text-xl font-medium tracking-tight text-app">
+                WEEK {session.week} <span style={{ color: 'var(--text-tertiary)' }}>DAY {session.day}</span>
               </div>
-              <div className="text-xs text-zinc-500">{session.dayName} · {session.label}</div>
+              <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{session.dayName} · {session.label}</div>
             </div>
             <button onClick={() => router.push(`/workout?idx=${Math.min(SCHEDULE.length - 1, idx + 1)}`)} disabled={idx === SCHEDULE.length - 1}
-              className="p-1.5 -mr-1.5 disabled:opacity-30">
+              className="p-1.5 -mr-1.5 disabled:opacity-30 text-app">
               <ChevronRight size={20} />
             </button>
           </div>
 
-          <div className="h-1 bg-zinc-100 rounded-full overflow-hidden mt-2">
+          <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: 'var(--bg-tertiary)' }}>
             <div className="h-full transition-all duration-300" style={{ width: `${pct}%`, backgroundColor: session.color }} />
           </div>
-          <div className="flex justify-between mt-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
+          <div className="flex justify-between mt-1.5 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
             <span>{completedSets}/{totalSets} sets</span>
             <span>{session.phase} phase</span>
-            <button onClick={resetSession} className="flex items-center gap-1 hover:text-zinc-600">
+            <button onClick={resetSession} className="flex items-center gap-1 hover:opacity-80">
               <RotateCcw size={10} /> reset
             </button>
           </div>
         </div>
       </div>
 
-      {/* Completed banner */}
       {sessionMarkedComplete && (
         <div className="mx-4 mt-3 p-3 rounded-lg flex items-center gap-2 text-sm" style={{ background: `${session.color}1f`, color: session.color }}>
           <CheckCircle2 size={18} />
@@ -156,12 +152,11 @@ function WorkoutScreen() {
         </div>
       )}
 
-      {/* Exercises */}
       <div>
         {session.exercises.map((ex, exIdx) => {
           const sugg = suggestions[ex.id];
           return (
-            <div key={ex.id} className="border-b border-zinc-200 px-4 py-3.5">
+            <div key={ex.id} className="border-b border-app px-4 py-3.5">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[9px] font-medium tracking-widest px-1.5 py-0.5 rounded-full"
                   style={{ background: `${session.color}1f`, color: session.color }}>
@@ -169,24 +164,27 @@ function WorkoutScreen() {
                 </span>
                 {ex.videoId && (
                   <button onClick={() => setVideoOpen(ex.videoId!)}
-                    className="p-1 -m-1 text-zinc-400 hover:text-zinc-600 flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                    className="p-1 -m-1 flex items-center gap-1 text-[10px] uppercase tracking-wider"
+                    style={{ color: 'var(--text-tertiary)' }}>
                     <Play size={11} fill="currentColor" /> demo
                   </button>
                 )}
               </div>
-              <div className="text-base font-medium leading-tight">{ex.name}</div>
-              <div className="text-[11px] text-zinc-500 mt-0.5 mb-2">
+              <div className="text-base font-medium leading-tight text-app">{ex.name}</div>
+              <div className="text-[11px] mt-0.5 mb-2" style={{ color: 'var(--text-secondary)' }}>
                 {ex.equip} · Rest {ex.rest}s · RPE {ex.targetRPE}
               </div>
               {sugg && (
-                <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-blue-50 rounded text-[11px] text-blue-700">
+                <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[11px]"
+                  style={{ background: 'var(--accent-blue-bg)', color: 'var(--accent-blue-text)' }}>
                   <TrendingUp size={11} />
                   <span>Suggested: <strong>{sugg.weight} lb</strong></span>
-                  <span className="text-blue-500">· {sugg.reason}</span>
+                  <span style={{ color: 'var(--accent-blue-muted)' }}>· {sugg.reason}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-[20px_1fr_1fr_44px_36px] gap-1.5 text-[9px] font-medium tracking-widest text-zinc-400 py-1.5">
+              <div className="grid grid-cols-[20px_1fr_1fr_44px_36px] gap-1.5 text-[9px] font-medium tracking-widest py-1.5"
+                style={{ color: 'var(--text-tertiary)' }}>
                 <div>SET</div>
                 <div className="text-center">WEIGHT</div>
                 <div className="text-center">REPS</div>
@@ -200,14 +198,15 @@ function WorkoutScreen() {
                 const placeholderWeight = ex.baseWeight !== null ? String(ex.baseWeight) : '—';
                 return (
                   <div key={setIdx} className="grid grid-cols-[20px_1fr_1fr_44px_36px] gap-1.5 items-center py-0.5">
-                    <div className="text-xs text-zinc-400">{setIdx + 1}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{setIdx + 1}</div>
                     <input
                       type="text"
                       inputMode="decimal"
                       value={data.weight || ''}
                       onChange={e => updateSet(exIdx, setIdx, { weight: e.target.value })}
                       placeholder={placeholderWeight}
-                      className="h-9 text-center text-sm bg-zinc-100 rounded-md w-full focus:bg-white focus:ring-2 focus:ring-zinc-300 outline-none"
+                      className="h-9 text-center text-sm rounded-md w-full outline-none focus:ring-2"
+                      style={{ background: 'var(--bg-input)' }}
                     />
                     <input
                       type="text"
@@ -215,22 +214,24 @@ function WorkoutScreen() {
                       value={data.reps || ''}
                       onChange={e => updateSet(exIdx, setIdx, { reps: e.target.value })}
                       placeholder={ex.reps.split(' ')[0]}
-                      className="h-9 text-center text-sm bg-zinc-100 rounded-md w-full focus:bg-white focus:ring-2 focus:ring-zinc-300 outline-none"
+                      className="h-9 text-center text-sm rounded-md w-full outline-none focus:ring-2"
+                      style={{ background: 'var(--bg-input)' }}
                     />
                     <select
                       value={data.rpe || ''}
                       onChange={e => updateSet(exIdx, setIdx, { rpe: parseInt(e.target.value) || undefined })}
-                      className="h-9 text-center text-xs bg-zinc-100 rounded-md w-full focus:bg-white outline-none appearance-none"
+                      className="h-9 text-center text-xs rounded-md w-full outline-none appearance-none"
+                      style={{ background: 'var(--bg-input)' }}
                     >
                       <option value="">—</option>
                       {[5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                     <button
                       onClick={() => toggleSet(exIdx, setIdx)}
-                      className={`h-9 w-9 mx-auto rounded-md text-base font-medium transition-colors ${
-                        data.done ? 'text-white' : 'bg-zinc-100 text-zinc-300'
-                      }`}
-                      style={data.done ? { backgroundColor: session.color } : undefined}
+                      className="h-9 w-9 mx-auto rounded-md text-base font-medium transition-colors"
+                      style={data.done
+                        ? { backgroundColor: session.color, color: '#ffffff' }
+                        : { background: 'var(--bg-input)', color: 'var(--text-tertiary)' }}
                     >
                       {data.done ? '✓' : '○'}
                     </button>
@@ -238,21 +239,22 @@ function WorkoutScreen() {
                 );
               })}
 
-              <div className="text-[10px] text-zinc-400 italic mt-2">{ex.cue}</div>
+              <div className="text-[10px] italic mt-2" style={{ color: 'var(--text-tertiary)' }}>{ex.cue}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Complete Workout button - sticky above bottom nav */}
       {!sessionMarkedComplete && (
         <div className="fixed left-0 right-0 z-20 px-4 pb-2" style={{ bottom: 'calc(64px + var(--safe-bottom))' }}>
           <div className="max-w-md mx-auto">
             <button
               onClick={() => setShowCompleteConfirm(true)}
               disabled={setsWithData === 0}
-              className="w-full py-3.5 rounded-xl text-white font-medium shadow-lg disabled:bg-zinc-300 disabled:shadow-none transition-colors"
-              style={setsWithData > 0 ? { backgroundColor: session.color } : undefined}
+              className="w-full py-3.5 rounded-xl font-medium shadow-lg transition-colors disabled:opacity-40"
+              style={setsWithData > 0
+                ? { backgroundColor: session.color, color: '#ffffff' }
+                : { background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
             >
               {completedSets === totalSets ? 'Complete Workout' : completedSets > 0 ? `Complete Workout (${completedSets}/${totalSets})` : 'Complete Workout'}
             </button>
@@ -260,24 +262,28 @@ function WorkoutScreen() {
         </div>
       )}
 
-      {/* Confirmation modal */}
       {showCompleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowCompleteConfirm(false)}>
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="text-lg font-medium mb-1">Complete this workout?</div>
-            <div className="text-sm text-zinc-500 mb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'var(--bg-overlay)' }}
+          onClick={() => setShowCompleteConfirm(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-sm"
+            style={{ background: 'var(--bg-modal)', boxShadow: 'var(--shadow-modal)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="text-lg font-medium mb-1 text-app">Complete this workout?</div>
+            <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
               {completedSets === totalSets
                 ? "All sets logged. Nice work."
                 : `You've logged ${completedSets}/${totalSets} sets. Any sets with weight/reps entered will be saved to history.`}
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowCompleteConfirm(false)}
-                className="flex-1 py-2.5 rounded-lg bg-zinc-100 text-zinc-700 font-medium">
+                className="flex-1 py-2.5 rounded-lg font-medium"
+                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
                 Keep going
               </button>
               <button onClick={completeWorkout}
-                className="flex-1 py-2.5 rounded-lg text-white font-medium"
-                style={{ backgroundColor: session.color }}>
+                className="flex-1 py-2.5 rounded-lg font-medium"
+                style={{ backgroundColor: session.color, color: '#ffffff' }}>
                 Complete
               </button>
             </div>
@@ -285,13 +291,14 @@ function WorkoutScreen() {
         </div>
       )}
 
-      {/* Success overlay */}
       {completed && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center pointer-events-none">
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ background: 'var(--bg-overlay)' }}>
+          <div className="rounded-2xl p-8 flex flex-col items-center gap-2"
+            style={{ background: 'var(--bg-modal)' }}>
             <CheckCircle2 size={48} style={{ color: session.color }} />
-            <div className="text-lg font-medium">Done!</div>
-            <div className="text-xs text-zinc-500">Loading next session…</div>
+            <div className="text-lg font-medium text-app">Done!</div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Loading next session…</div>
           </div>
         </div>
       )}
@@ -312,7 +319,7 @@ function WorkoutScreen() {
 
 export default function WorkoutPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading…</div>}>
+    <Suspense fallback={<div className="p-8 text-center" style={{ color: 'var(--text-tertiary)' }}>Loading…</div>}>
       <WorkoutScreen />
     </Suspense>
   );
