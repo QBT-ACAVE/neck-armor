@@ -4,10 +4,10 @@ import { usePathname } from 'next/navigation';
 import { Dumbbell, Calendar, BarChart3, Settings, Target, Apple } from 'lucide-react';
 
 const TABS = [
+  { href: '/nutrition', label: 'Fuel', icon: Apple },
   { href: '/workout', label: 'Workout', icon: Dumbbell },
   { href: '/calendar', label: 'Plan', icon: Calendar },
   { href: '/catches', label: 'Catches', icon: Target },
-  { href: '/nutrition', label: 'Fuel', icon: Apple },
   { href: '/history', label: 'PRs', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
