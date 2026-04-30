@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Dumbbell, Calendar, BarChart3, Settings, Target, Apple } from 'lucide-react';
+import { Home, Dumbbell, Calendar, Settings, Target, Beef } from 'lucide-react';
 
 const TABS = [
-  { href: '/nutrition', label: 'Fuel', icon: Apple },
+  { href: '/', label: 'Home', icon: Home, exact: true },
+  { href: '/nutrition', label: 'Fuel', icon: Beef },
   { href: '/workout', label: 'Workout', icon: Dumbbell },
   { href: '/calendar', label: 'Plan', icon: Calendar },
   { href: '/catches', label: 'Catches', icon: Target },
-  { href: '/history', label: 'PRs', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -18,7 +18,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 backdrop-blur nav-bg border-t border-app bottom-nav z-20">
       <div className="max-w-md mx-auto grid grid-cols-6 pt-2">
         {TABS.map(t => {
-          const active = pathname.startsWith(t.href);
+          const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
           const Icon = t.icon;
           return (
             <Link key={t.href} href={t.href} className="flex flex-col items-center gap-0.5 py-1"

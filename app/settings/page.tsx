@@ -37,7 +37,7 @@ export default function SettingsPage() {
     setNotifStatus(result);
     if (result === 'granted') {
       update({ pushNotifications: true });
-      new Notification('Neck Armor', { body: 'Notifications enabled!' });
+      new Notification('Reid Cave', { body: 'Notifications enabled!' });
     }
   };
 

@@ -6,10 +6,10 @@ import Hydrator from './components/Hydrator';
 import { ThemeBootstrap, ThemeProvider } from './components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'Neck Armor',
+  title: 'Reid Cave',
   description: '12-week neck strength program',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Neck Armor' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Reid Cave' },
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
