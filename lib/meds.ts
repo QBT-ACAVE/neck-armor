@@ -260,26 +260,7 @@ export async function fetchMedsStreak(today = localDateKey()): Promise<number> {
     fetchIntakeLogsBetween(startKey, today),
   ]);
   const medById = new Map(medicines.map(m => [m.id, m]));
-  const logKey = (l: MedicineIntakeLog) => `${l.dose_id}|${l.scheduled_date}`;
-  const logSet = new Set(logs.map(logKey));
-
-  const cursor = parseDateKey(today);
-  let streak = 0;
-  // Anchor: today or yesterday must qualify
-  for (let i = 0; i < 2; i++) {
-    if (qualifies(cursor)) { streak = 0; break; }      // we'll start counting below
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  cursor.setTime(parseDateKey(today).getTime());
-  if (!qualifies(cursor)) {
-    cursor.setDate(cursor.getDate() - 1);
-    if (!qualifies(cursor)) return 0;
-  }
-  while (qualifies(cursor)) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
+  const logSet = new Set(logs.map(l => `${l.dose_id}|${l.scheduled_date}`));
 
   function qualifies(d: Date): boolean {
     const key = localDateKey(d);
@@ -295,4 +276,17 @@ export async function fetchMedsStreak(today = localDateKey()): Promise<number> {
     if (scheduled === 0) return true;        // no-dose day counts as a continued streak
     return taken === scheduled;
   }
+
+  // Anchor: today must qualify, or fall back to yesterday (so "haven't taken today yet" doesn't break the streak).
+  const cursor = parseDateKey(today);
+  if (!qualifies(cursor)) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!qualifies(cursor)) return 0;
+  }
+  let streak = 0;
+  while (qualifies(cursor)) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }
