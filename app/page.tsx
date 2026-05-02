@@ -10,7 +10,8 @@ import {
 } from '@/lib/nutrition';
 import { loadCatchesAsync, getStats as catchesStats } from '@/lib/catches';
 import { loadHistoryAsync, type ExerciseHistory } from '@/lib/storage';
-import { Beef, Dumbbell, Target, Flame, ChevronRight } from 'lucide-react';
+import { fetchMedsStreak } from '@/lib/meds';
+import { Beef, Dumbbell, Target, Flame, ChevronRight, Pill } from 'lucide-react';
 
 const DAY_MS = 86400000;
 
@@ -46,21 +47,24 @@ export default function HomePage() {
   const [fuelAtRisk, setFuelAtRisk] = useState(false);
   const [workoutStreak, setWorkoutStreak] = useState<number | null>(null);
   const [catchStreak, setCatchStreak] = useState<number | null>(null);
+  const [medsStreak, setMedsStreak] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       const today = localDateKey();
-      const [rows, history, catches] = await Promise.all([
+      const [rows, history, catches, medsStreakValue] = await Promise.all([
         fetchNutritionLogs(35),
         loadHistoryAsync(),
         loadCatchesAsync(),
+        fetchMedsStreak(),
       ]);
       if (!alive) return;
       setFuelStreak(nutritionStreak(rows, today));
       setFuelAtRisk(nutritionAtRisk(rows, today));
       setWorkoutStreak(workoutStreakFromHistory(history));
       setCatchStreak(catchesStats(catches).streak);
+      setMedsStreak(medsStreakValue);
     })();
     return () => {
       alive = false;
@@ -82,7 +86,7 @@ export default function HomePage() {
 
       {/* Streaks */}
       <SectionLabel>Day Streaks</SectionLabel>
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-2 gap-2 mb-5">
         <SparkCard
           label="Fuel"
           icon="🥩"
@@ -98,6 +102,13 @@ export default function HomePage() {
           accent="#3b82f6"
         />
         <SparkCard
+          label="Meds"
+          icon="💊"
+          streak={medsStreak}
+          atRisk={false}
+          accent="#a855f7"
+        />
+        <SparkCard
           label="Catches"
           icon="🎯"
           streak={catchStreak}
@@ -111,6 +122,7 @@ export default function HomePage() {
       <div className="space-y-2">
         <QuickLink href="/nutrition" label="Fuel" subtitle="Log today's nutrition" Icon={Beef} accent="#fb923c" />
         <QuickLink href="/workout" label="Workout" subtitle="Today's lifts" Icon={Dumbbell} accent="#3b82f6" />
+        <QuickLink href="/meds" label="Meds" subtitle="Today's meds" Icon={Pill} accent="#a855f7" />
         <QuickLink href="/catches" label="Catches" subtitle="Add catches" Icon={Target} accent="#10b981" />
       </div>
     </div>
