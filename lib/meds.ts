@@ -31,16 +31,15 @@ export async function fetchActiveMedicinesWithDoses(): Promise<{
   medicines: Medicine[];
   doses: MedicineDose[];
 }> {
-  const [meds, doses] = await Promise.all([
-    supabase().from('medicines').select('*').eq('active', true).order('display_order'),
-    supabase().from('medicine_doses').select('*'),
-  ]);
-  if (meds.error) throw meds.error;
-  if (doses.error) throw doses.error;
-  return {
-    medicines: (meds.data ?? []) as Medicine[],
-    doses: (doses.data ?? []) as MedicineDose[],
-  };
+  const { data: meds, error: medsErr } = await supabase()
+    .from('medicines').select('*').eq('active', true).order('display_order');
+  if (medsErr) throw medsErr;
+  const medicines = (meds ?? []) as Medicine[];
+  if (medicines.length === 0) return { medicines, doses: [] };
+  const { data: doses, error: dosesErr } = await supabase()
+    .from('medicine_doses').select('*').in('medicine_id', medicines.map(m => m.id));
+  if (dosesErr) throw dosesErr;
+  return { medicines, doses: (doses ?? []) as MedicineDose[] };
 }
 
 export async function fetchAllMedicinesWithDoses(): Promise<{
@@ -163,7 +162,7 @@ export async function upsertDoses(medicineId: string, doses: Array<Omit<Medicine
   const incomingIds = doses.filter(d => d.id).map(d => d.id!);
   // Remove doses no longer present
   let del = supabase().from('medicine_doses').delete().eq('medicine_id', medicineId);
-  if (incomingIds.length > 0) del = del.not('id', 'in', `(${incomingIds.map(i => `"${i}"`).join(',')})`);
+  if (incomingIds.length > 0) del = del.not('id', 'in', `(${incomingIds.join(',')})`);
   const { error: delErr } = await del;
   if (delErr) throw delErr;
   // Upsert each
