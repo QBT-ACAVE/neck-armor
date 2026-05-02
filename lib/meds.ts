@@ -275,6 +275,15 @@ export async function fetchMedsStreak(today = localDateKey()): Promise<number> {
     return taken === scheduled;
   }
 
+  // Floor: the earliest medicine creation date — before any med existed, a "streak" is meaningless
+  // and would otherwise walk backward forever via the no_doses → continued-streak rule.
+  const earliestCreated = medicines.length === 0
+    ? null
+    : medicines.reduce((min, m) => {
+        const c = new Date(m.created_at);
+        return min === null || c < min ? c : min;
+      }, null as Date | null);
+
   // Anchor: today must qualify, or fall back to yesterday (so "haven't taken today yet" doesn't break the streak).
   const cursor = parseDateKey(today);
   if (!qualifies(cursor)) {
@@ -283,6 +292,7 @@ export async function fetchMedsStreak(today = localDateKey()): Promise<number> {
   }
   let streak = 0;
   while (qualifies(cursor)) {
+    if (earliestCreated && cursor < earliestCreated) break;
     streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
