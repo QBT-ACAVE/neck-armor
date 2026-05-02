@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Medicine, MedicineIntakeLog } from '@/lib/meds-types';
+import { getSignedImageUrl } from '@/lib/meds';
 import PhotoLightbox from '@/app/components/PhotoLightbox';
 
 export default function PrnCard({
@@ -17,7 +18,8 @@ export default function PrnCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const lightboxOpen = lightboxUrl !== null;
 
   const count = intakesToday.length;
   const last = count > 0
@@ -32,9 +34,15 @@ export default function PrnCard({
     try { await onTake(); } finally { setPending(false); }
   };
 
-  const openLightbox = (e: React.MouseEvent) => {
+  const openLightbox = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setLightboxOpen(true);
+    if (!medicine.image_path) return;
+    try {
+      const url = await getSignedImageUrl(medicine.image_path);
+      setLightboxUrl(url);
+    } catch {
+      if (imageUrl) setLightboxUrl(imageUrl);
+    }
   };
 
   return (
@@ -94,11 +102,11 @@ export default function PrnCard({
           </div>
         </div>
       )}
-      {lightboxOpen && imageUrl && (
+      {lightboxOpen && lightboxUrl && (
         <PhotoLightbox
-          src={imageUrl}
+          src={lightboxUrl}
           alt={medicine.name}
-          onClose={() => setLightboxOpen(false)}
+          onClose={() => setLightboxUrl(null)}
         />
       )}
     </div>

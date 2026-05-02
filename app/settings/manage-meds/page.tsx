@@ -15,7 +15,9 @@ export default function ManageMedsPage() {
     (async () => {
       const { medicines, doses } = await fetchAllMedicinesWithDoses();
       const paths = medicines.map(m => m.image_path).filter((p): p is string => !!p);
-      const urls = paths.length ? await getSignedImageUrls(paths) : {};
+      const urls = paths.length
+        ? await getSignedImageUrls(paths, { width: 240, quality: 70 })
+        : {};
       if (cancelled) return;
       setMeds(medicines); setDoses(doses); setImageUrls(urls);
     })();

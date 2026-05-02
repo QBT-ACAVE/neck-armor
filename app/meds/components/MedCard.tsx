@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import type { ScheduledDoseToday } from '@/lib/meds-types';
-import { combineDateAndTime } from '@/lib/meds';
+import { combineDateAndTime, getSignedImageUrl } from '@/lib/meds';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatTime } from '../format';
 import PhotoLightbox from '@/app/components/PhotoLightbox';
@@ -18,7 +18,8 @@ export default function MedCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const lightboxOpen = lightboxUrl !== null;
 
   const taken = item.taken_at !== null;
   const now = new Date();
@@ -34,24 +35,38 @@ export default function MedCard({
     try { await onToggle(); } finally { setPending(false); }
   };
 
-  const openLightbox = (e: React.MouseEvent) => {
+  const openLightbox = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setLightboxOpen(true);
+    if (!item.medicine.image_path) return;
+    try {
+      const url = await getSignedImageUrl(item.medicine.image_path);
+      setLightboxUrl(url);
+    } catch {
+      if (imageUrl) setLightboxUrl(imageUrl);
+    }
   };
 
-  const bg = taken
-    ? 'var(--accent-emerald-tint)'
-    : overdue ? 'var(--accent-red-tint)' : 'var(--bg-secondary)';
-  const border = taken
-    ? 'var(--accent-emerald-border)'
-    : overdue ? 'var(--accent-red-border)' : 'var(--border-primary)';
+  const bg = taken ? 'var(--accent-emerald-tint)' : 'var(--bg-secondary)';
+  const border = taken ? 'var(--accent-emerald-border)' : 'var(--border-primary)';
 
   return (
     <div
       onClick={() => setExpanded(v => !v)}
-      className="rounded-xl border p-3 mb-2 transition-colors cursor-pointer active:scale-[0.99]"
+      className="relative rounded-xl border p-3 mb-2 transition-colors cursor-pointer active:scale-[0.99]"
       style={{ background: bg, borderColor: border }}
     >
+      {overdue && (
+        <div
+          className="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border pointer-events-none"
+          style={{
+            background: 'var(--accent-red-bg)',
+            color: 'var(--accent-red)',
+            borderColor: 'var(--accent-red-border)',
+          }}
+        >
+          Overdue
+        </div>
+      )}
       <div className="flex items-center gap-3">
         {imageUrl ? (
           <img
@@ -78,7 +93,7 @@ export default function MedCard({
           className="w-10 h-10 rounded-lg border flex items-center justify-center transition"
           style={{
             background: taken ? 'var(--accent-emerald)' : 'transparent',
-            borderColor: taken ? 'var(--accent-emerald)' : (overdue ? 'var(--accent-red-border)' : 'var(--border-secondary)'),
+            borderColor: taken ? 'var(--accent-emerald)' : 'var(--border-secondary)',
           }}
         >
           {taken && <Check size={20} color="white" />}
@@ -98,11 +113,11 @@ export default function MedCard({
           </div>
         </div>
       )}
-      {lightboxOpen && imageUrl && (
+      {lightboxOpen && lightboxUrl && (
         <PhotoLightbox
-          src={imageUrl}
+          src={lightboxUrl}
           alt={item.medicine.name}
-          onClose={() => setLightboxOpen(false)}
+          onClose={() => setLightboxUrl(null)}
         />
       )}
     </div>

@@ -30,8 +30,8 @@ export default function PhotoLightbox({
       <img
         src={src}
         alt={alt ?? ''}
-        onClick={e => e.stopPropagation()}
-        className="max-w-full max-h-full object-contain rounded-lg"
+        onClick={onClose}
+        className="max-w-full max-h-full object-contain rounded-lg cursor-zoom-out"
       />
     </div>
   );

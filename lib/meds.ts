@@ -198,17 +198,32 @@ export async function deleteMedicineImage(path: string): Promise<void> {
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;       // 1 hour
 
-export async function getSignedImageUrl(path: string): Promise<string> {
+export type ImageTransform = { width?: number; height?: number; quality?: number };
+
+export async function getSignedImageUrl(
+  path: string, transform?: ImageTransform,
+): Promise<string> {
   const { data, error } = await supabase().storage
-    .from('medicine-images').createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    .from('medicine-images')
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS, transform ? { transform } : undefined);
   if (error) throw error;
   return data.signedUrl;
 }
 
-export async function getSignedImageUrls(paths: string[]): Promise<Record<string, string>> {
-  // Single batched call. Skips empty/null.
+export async function getSignedImageUrls(
+  paths: string[], transform?: ImageTransform,
+): Promise<Record<string, string>> {
   const valid = paths.filter(Boolean);
   if (valid.length === 0) return {};
+
+  // createSignedUrls (batched) doesn't accept transform — use singular calls in parallel
+  if (transform) {
+    const entries = await Promise.all(
+      valid.map(async (p) => [p, await getSignedImageUrl(p, transform)] as const)
+    );
+    return Object.fromEntries(entries);
+  }
+
   const { data, error } = await supabase().storage
     .from('medicine-images').createSignedUrls(valid, SIGNED_URL_TTL_SECONDS);
   if (error) throw error;

@@ -65,7 +65,7 @@ export default function MedForm({
   useEffect(() => {
     let cancelled = false;
     if (imagePath) {
-      getSignedImageUrl(imagePath)
+      getSignedImageUrl(imagePath, { width: 320, quality: 70 })
         .then(u => { if (!cancelled) setImageUrl(u); })
         .catch(() => { if (!cancelled) setImageUrl(null); });
     } else {
