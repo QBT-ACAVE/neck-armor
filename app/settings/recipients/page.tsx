@@ -18,7 +18,13 @@ export default function RecipientsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const reload = async () => setRows(await fetchRecipients() as Draft[]);
+  const reload = async () => {
+    const fresh = await fetchRecipients() as Draft[];
+    setRows(prev => {
+      const drafts = (prev ?? []).filter(r => r._isNew);
+      return [...fresh, ...drafts];
+    });
+  };
 
   const update = (idx: number, patch: Partial<Draft>) =>
     setRows(arr => arr!.map((r, i) => i === idx ? { ...r, ...patch } : r));
