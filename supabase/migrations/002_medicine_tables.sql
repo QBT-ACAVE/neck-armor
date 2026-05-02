@@ -55,7 +55,6 @@ create table if not exists medicine_intake_log (
   unique(dose_id, scheduled_date)
 );
 create index if not exists medicine_intake_log_date_idx on medicine_intake_log(scheduled_date desc);
-create index if not exists medicine_intake_log_dose_date_idx on medicine_intake_log(dose_id, scheduled_date);
 
 -- ─── notification_recipients ──────────────────────────────────────
 create table if not exists notification_recipients (
@@ -84,6 +83,7 @@ create table if not exists notification_send_log (
   provider_message_id text
 );
 create index if not exists notification_send_log_for_date_idx on notification_send_log(for_date desc);
+create index if not exists notification_send_log_recipient_idx on notification_send_log(recipient_id);
 
 -- ─── RLS: open access (single-user app) ───────────────────────────
 do $$
@@ -114,12 +114,12 @@ create policy "medicine_images_all" on storage.objects for all
 
 -- ─── Realtime (optional cross-device sync) ────────────────────────
 do $$ begin
-  perform 1;
-  begin
-    alter publication supabase_realtime add table medicines;
-    alter publication supabase_realtime add table medicine_doses;
-    alter publication supabase_realtime add table medicine_intake_log;
-    alter publication supabase_realtime add table notification_recipients;
-  exception when duplicate_object then null;
-  end;
+  begin alter publication supabase_realtime add table medicines;
+    exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table medicine_doses;
+    exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table medicine_intake_log;
+    exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table notification_recipients;
+    exception when duplicate_object then null; end;
 end $$;
