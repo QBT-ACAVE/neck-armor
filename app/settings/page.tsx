@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { loadSettings, saveSettings, type Settings } from '@/lib/storage';
 import { PROGRAM_META } from '@/lib/program';
 import { supabase } from '@/lib/supabase';
@@ -133,6 +134,20 @@ export default function SettingsPage() {
           <div className="text-xs" style={{ color: 'var(--accent-emerald)' }}>✓ Enabled</div>
         )}
         <div className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>Tip: For best results, add to home screen first (Share → Add to Home Screen).</div>
+      </div>
+
+      <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>MEDICINE</div>
+      <div className="space-y-2 mb-6">
+        <Link href="/settings/manage-meds"
+          className="block w-full py-2.5 px-3 text-sm rounded-md font-medium border text-left"
+          style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+          Manage Medicines
+        </Link>
+        <Link href="/settings/recipients"
+          className="block w-full py-2.5 px-3 text-sm rounded-md font-medium border text-left"
+          style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+          Notification Recipients
+        </Link>
       </div>
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>DATA</div>
