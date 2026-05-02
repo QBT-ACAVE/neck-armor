@@ -108,14 +108,18 @@ export async function POST(req: Request) {
   const sends = await Promise.all(
     recipients.filter(r => r.phone).map(async r => {
       const result = await sendSms(r.phone!, body);
-      await supabase.from('notification_send_log').insert({
-        for_date: forDate,
-        recipient_id: r.id,
-        channel: 'sms',
-        status: result.success ? 'sent' : 'failed',
-        error: result.error ?? null,
-        provider_message_id: result.providerMessageId ?? null,
-      });
+      try {
+        await supabase.from('notification_send_log').insert({
+          for_date: forDate,
+          recipient_id: r.id,
+          channel: 'sms',
+          status: result.success ? 'sent' : 'failed',
+          error: result.error ?? null,
+          provider_message_id: result.providerMessageId ?? null,
+        });
+      } catch (e) {
+        console.error('notification_send_log insert failed', e);
+      }
       return { recipient: r.name, ...result };
     })
   );
