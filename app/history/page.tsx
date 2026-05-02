@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { loadHistory, findPR, type ExerciseHistory } from '@/lib/storage';
 import { SCHEDULE } from '@/lib/program';
 import { Trophy } from 'lucide-react';
@@ -18,6 +19,10 @@ export default function HistoryPage() {
   return (
     <div className="px-4 py-4" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
       <h1 className="text-xl font-medium mb-3 text-app">History & PRs</h1>
+      <Link href="/history/meds" className="block mb-3 text-sm rounded-lg p-3 border"
+        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+        💊 Meds History →
+      </Link>
 
       <div className="grid grid-cols-2 gap-2 mb-5">
         <div className="rounded-lg p-3" style={{ background: 'var(--bg-tertiary)' }}>
