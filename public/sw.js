@@ -23,12 +23,30 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-self.addEventListener('push', (e) => {
-  const data = e.data ? e.data.json() : { title: 'Neck Armor', body: 'Time to train!' };
-  e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: '/icon-192.png' }));
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { /* */ }
+  const title = data.title || 'Reid Cave';
+  const options = {
+    body: data.body || 'Time to take your meds',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || 'meds',
+    requireInteraction: false,
+    data: { url: data.url || '/meds' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', (e) => {
-  e.notification.close();
-  e.waitUntil(self.clients.openWindow('/'));
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/meds';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) { w.navigate(url); return w.focus(); }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });

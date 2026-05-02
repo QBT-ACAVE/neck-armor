@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { loadSettings, saveSettings, type Settings } from '@/lib/storage';
+import { subscribeToPush, unsubscribeFromPush, getSubscriptionStatus } from '@/lib/push';
 import { PROGRAM_META } from '@/lib/program';
 import { supabase } from '@/lib/supabase';
 import { getTheme, setTheme as applyTheme, type Theme } from '../components/ThemeProvider';
@@ -9,28 +10,12 @@ import { Sun, Moon, Monitor } from 'lucide-react';
 
 export default function SettingsPage() {
   const [s, setS] = useState<Settings>({ restTimerSound: true, restTimerHaptic: true, pushNotifications: false, autoProgression: true });
-  const [notifStatus, setNotifStatus] = useState<string>('');
   const [theme, setThemeState] = useState<Theme>('system');
   const [busy, setBusy] = useState(false);
-  const [lastSummary, setLastSummary] = useState<{ for_date: string; status: string; error: string | null; sent_at: string } | null>(null);
-  const [resendBusy, setResendBusy] = useState(false);
-  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setS(loadSettings());
-    setNotifStatus(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
     setThemeState(getTheme());
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase().from('notification_send_log')
-        .select('*').order('sent_at', { ascending: false }).limit(1);
-      if (data && data.length > 0) {
-        const r = data[0];
-        setLastSummary({ for_date: r.for_date, status: r.status, error: r.error, sent_at: r.sent_at });
-      }
-    })();
   }, []);
 
   const update = (patch: Partial<Settings>) => {
@@ -43,17 +28,35 @@ export default function SettingsPage() {
     applyTheme(t);
   };
 
-  const requestPushPermission = async () => {
-    if (typeof Notification === 'undefined') {
-      alert('Notifications not supported. Add app to home screen first.');
-      return;
-    }
-    const result = await Notification.requestPermission();
-    setNotifStatus(result);
-    if (result === 'granted') {
-      update({ pushNotifications: true });
-      new Notification('Reid Cave', { body: 'Notifications enabled!' });
-    }
+  const [pushStatus, setPushStatus] = useState<string>('checking…');
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSubscriptionStatus().then(s => { if (!cancelled) setPushStatus(s); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushStatus === 'subscribed') {
+        await unsubscribeFromPush();
+        setPushStatus('unsubscribed');
+      } else {
+        const result = await subscribeToPush();
+        if (!result.ok) {
+          alert('Push subscribe failed: ' + result.reason);
+          const s = await getSubscriptionStatus(); setPushStatus(s);
+        } else {
+          setPushStatus('subscribed');
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification('Reid Cave', { body: 'Notifications enabled!', icon: '/icon-192.png' });
+          }
+        }
+      }
+    } finally { setPushBusy(false); }
   };
 
   const exportData = async () => {
@@ -92,6 +95,8 @@ export default function SettingsPage() {
         supabase().from('medicines').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
         supabase().from('notification_send_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
         supabase().from('notification_recipients').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('push_send_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('push_subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       ]);
       // Clear local cache
       for (const k of Object.keys(localStorage)) {
@@ -101,23 +106,6 @@ export default function SettingsPage() {
     } catch (e) {
       alert('Wipe failed: ' + (e as Error).message);
       setBusy(false);
-    }
-  };
-
-  const resendNow = async () => {
-    setResendBusy(true); setResendMsg(null);
-    try {
-      const secret = prompt('CRON_SECRET (only needed for local/manual calls — leave empty if Vercel-protected):');
-      const res = await fetch('/api/send-daily-summary?force=true', {
-        method: 'POST',
-        headers: secret ? { authorization: `Bearer ${secret}` } : {},
-      });
-      const j = await res.json();
-      setResendMsg(res.ok ? `Sent: ${j.taken}/${j.total}` : `Error: ${j.error}`);
-    } catch (e) {
-      setResendMsg('Error: ' + (e as Error).message);
-    } finally {
-      setResendBusy(false);
     }
   };
 
@@ -158,35 +146,20 @@ export default function SettingsPage() {
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>NOTIFICATIONS</div>
       <div className="rounded-lg p-3 mb-6 border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-        <div className="text-sm font-medium mb-1 text-app">Daily training reminders</div>
-        <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Status: {notifStatus}</div>
-        {notifStatus !== 'granted' && (
-          <button onClick={requestPushPermission} className="w-full py-2 text-sm rounded-md font-medium"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-            Enable notifications
-          </button>
-        )}
-        {notifStatus === 'granted' && (
-          <div className="text-xs" style={{ color: 'var(--accent-emerald)' }}>✓ Enabled</div>
-        )}
-        <div className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>Tip: For best results, add to home screen first (Share → Add to Home Screen).</div>
-      </div>
-
-      <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>DAILY RECAP</div>
-      <div className="rounded-lg p-3 mb-6 border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-        <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
-          {lastSummary
-            ? <>Last sent <strong style={{ color: 'var(--text-primary)' }}>{lastSummary.for_date}</strong> · {lastSummary.status}{lastSummary.error ? ` (${lastSummary.error})` : ''}</>
-            : 'No summaries sent yet.'}
-        </div>
-        <button onClick={resendNow} disabled={resendBusy}
-          className="w-full py-2 mt-2 text-sm rounded-md font-medium border disabled:opacity-50"
-          style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
-          {resendBusy ? 'Sending\u2026' : 'Resend today\u2019s summary now'}
+        <div className="text-sm font-medium mb-1 text-app">Med reminders</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Status: {pushStatus}</div>
+        <button onClick={togglePush} disabled={pushBusy || pushStatus === 'unsupported' || pushStatus === 'denied'}
+          className="w-full py-2 text-sm rounded-md font-medium disabled:opacity-50"
+          style={{
+            background: pushStatus === 'subscribed' ? 'var(--accent-red-bg)' : 'var(--text-primary)',
+            color: pushStatus === 'subscribed' ? 'var(--accent-red)' : 'var(--bg-primary)',
+            border: pushStatus === 'subscribed' ? '1px solid var(--accent-red-border)' : 'none',
+          }}>
+          {pushBusy ? '…' : pushStatus === 'subscribed' ? 'Disable reminders' : 'Enable reminders'}
         </button>
-        {resendMsg && (
-          <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>{resendMsg}</div>
-        )}
+        <div className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+          iPhone: must Add to Home Screen first (Share → Add to Home Screen), then open from the home-screen icon.
+        </div>
       </div>
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>MEDICINE</div>
