@@ -166,7 +166,11 @@ export async function upsertDoses(medicineId: string, doses: Array<Omit<Medicine
   if (delErr) throw delErr;
   // Upsert each
   if (doses.length > 0) {
-    const rows = doses.map(d => ({ ...d, medicine_id: medicineId }));
+    const rows = doses.map(d => {
+      const row: Record<string, unknown> = { ...d, medicine_id: medicineId };
+      if (!row.id) delete row.id;
+      return row;
+    });
     const { error: upsErr } = await supabase().from('medicine_doses').upsert(rows);
     if (upsErr) throw upsErr;
   }
