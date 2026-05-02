@@ -1,11 +1,14 @@
 'use client';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import {
   NUTRITION_ITEMS, TOTAL_ITEMS, type NutritionItemKey, type NutritionLogRow,
-  fetchNutritionLogs, toggleItem, computeStreak, isStreakAtRisk,
-  groupByDay, weeklySummary, monthlySummary, localDateKey, addDays,
+  fetchNutritionLogs, fetchNutritionLogsBetween, toggleItem,
+  computeStreak, isStreakAtRisk, localDateKey,
+  earliestLogDate, nutritionDayColor,
 } from '@/lib/nutrition';
 import { Flame, Check } from 'lucide-react';
+import MonthCalendar from '@/app/components/MonthCalendar';
+import FuelDayDetail from './components/FuelDayDetail';
 
 export default function NutritionPage() {
   const [rows, setRows] = useState<NutritionLogRow[]>([]);
@@ -15,35 +18,58 @@ export default function NutritionPage() {
 
   const today = localDateKey();
 
-  // Initial fetch
+  // Calendar
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [monthRows, setMonthRows] = useState<NutritionLogRow[]>([]);
+  const [earliestKey, setEarliestKey] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  // Initial fetch (today's checklist + earliest date for tracking-start floor)
   useEffect(() => {
     let alive = true;
-    fetchNutritionLogs(35).then((data) => {
+    fetchNutritionLogs(365).then((data) => {
       if (!alive) return;
       setRows(data);
       const todayChecked = new Set(
         data.filter((r) => r.log_date === today).map((r) => r.item_key)
       );
       setOptimistic(todayChecked);
+      setEarliestKey(earliestLogDate(data));
       setLoading(false);
     });
     return () => { alive = false; };
   }, [today]);
 
+  // Reload month range when cursor changes
+  useEffect(() => {
+    let alive = true;
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth();
+    const startKey = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const endDay = new Date(y, m + 1, 0).getDate();
+    const endKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    fetchNutritionLogsBetween(startKey, endKey).then((data) => {
+      if (!alive) return;
+      setMonthRows(data);
+    });
+    return () => { alive = false; };
+  }, [cursor]);
+
   const handleToggle = (key: NutritionItemKey) => {
     if ('vibrate' in navigator) navigator.vibrate(20);
-
-    // Optimistic UI
     setOptimistic((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
-
     startTransition(async () => {
       await toggleItem(key, today);
-      const fresh = await fetchNutritionLogs(35);
+      const fresh = await fetchNutritionLogs(365);
       setRows(fresh);
+      setEarliestKey(earliestLogDate(fresh));
     });
   };
 
@@ -57,6 +83,14 @@ export default function NutritionPage() {
     shakes: NUTRITION_ITEMS.filter((i) => i.group === 'shakes'),
     supplements: NUTRITION_ITEMS.filter((i) => i.group === 'supplements'),
   };
+
+  const dayColor = useMemo(() => {
+    return (dateKey: string) => {
+      // Today is "in progress" — keep neutral on calendar
+      if (dateKey === today) return 'neutral' as const;
+      return nutritionDayColor(dateKey, monthRows, earliestKey);
+    };
+  }, [monthRows, earliestKey, today]);
 
   return (
     <div className="px-4 py-4 pb-24" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
@@ -150,27 +184,22 @@ export default function NutritionPage() {
             ))}
           </div>
 
-          {/* 7-day heatmap */}
-          <SectionLabel>LAST 7 DAYS</SectionLabel>
-          <Last7Days rows={rows} today={today} />
-
-          {/* Weekly summary */}
-          <SectionLabel>THIS WEEK</SectionLabel>
-          <SummaryBars
-            rows={rows}
-            stats={weeklySummary(rows, today, 7)}
-            divisor={7}
-            color="var(--accent-emerald)"
+          {/* Month calendar */}
+          <SectionLabel>HISTORY</SectionLabel>
+          <MonthCalendar
+            cursor={cursor}
+            onCursorChange={(d) => { setCursor(d); setSelectedDay(null); }}
+            dayColor={dayColor}
+            selectedDayKey={selectedDay}
+            onSelectDay={(k) => setSelectedDay(prev => prev === k ? null : k)}
           />
-
-          {/* Monthly */}
-          <SectionLabel>THIS MONTH</SectionLabel>
-          <SummaryBars
-            rows={rows}
-            stats={monthlySummary(rows, today)}
-            divisor={monthlySummary(rows, today)[0]?.daysInWindow ?? 1}
-            color="var(--accent-blue, #185FA5)"
-          />
+          {selectedDay && (
+            <FuelDayDetail
+              dateKey={selectedDay}
+              rows={monthRows}
+              onClose={() => setSelectedDay(null)}
+            />
+          )}
         </>
       )}
     </div>
@@ -249,75 +278,5 @@ function CheckRow({
         {checked && <Check size={14} color="white" strokeWidth={3} />}
       </span>
     </button>
-  );
-}
-
-function Last7Days({ rows, today }: { rows: NutritionLogRow[]; today: string }) {
-  const last7 = Array.from({ length: 7 }, (_, i) => addDays(today, -(6 - i)));
-  const dayMap = groupByDay(rows);
-  return (
-    <div className="grid grid-cols-7 gap-1.5 mb-5">
-      {last7.map((d) => {
-        const day = dayMap.get(d);
-        const total = day?.total ?? 0;
-        const intensity = total / 10;
-        const label = new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'narrow' });
-        return (
-          <div key={d} className="flex flex-col items-center gap-1">
-            <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
-            <div
-              className="aspect-square w-full rounded-md border flex items-center justify-center text-[11px] font-semibold"
-              style={{
-                background: intensity > 0
-                  ? `rgba(29,158,117,${0.15 + intensity * 0.6})`
-                  : 'var(--bg-secondary)',
-                borderColor: 'var(--border-primary)',
-                color: intensity > 0.5 ? '#fff' : 'var(--text-tertiary)',
-              }}
-            >
-              {total}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function SummaryBars({
-  stats, divisor, color,
-}: {
-  rows: NutritionLogRow[];
-  stats: { item: NutritionItemKey; count: number; pct: number }[];
-  divisor: number;
-  color: string;
-}) {
-  return (
-    <div className="space-y-2 mb-6">
-      {stats.map((s) => {
-        const item = NUTRITION_ITEMS.find((i) => i.key === s.item)!;
-        return (
-          <div key={s.item} className="flex items-center gap-3">
-            <span className="text-base w-6 text-center">{item.icon}</span>
-            <span className="text-xs flex-1 truncate text-app">{item.label}</span>
-            <div
-              className="w-24 h-1.5 rounded-full overflow-hidden"
-              style={{ background: 'var(--border-primary)' }}
-            >
-              <div
-                className="h-full transition-all"
-                style={{ width: `${s.pct}%`, background: color }}
-              />
-            </div>
-            <span
-              className="text-[11px] font-mono w-10 text-right"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              {s.count}/{divisor}
-            </span>
-          </div>
-        );
-      })}
-    </div>
   );
 }

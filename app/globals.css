@@ -40,6 +40,9 @@
   --accent-red: #dc2626;
   --accent-red-border: #fecaca;
   --accent-red-bg: #ffffff;
+  --accent-red-tint: #fee2e2;
+  --accent-emerald-tint: #d1fae5;
+  --accent-emerald-border: #6ee7b7;
 
   --header-bg: rgba(255, 255, 255, 0.95);
   --nav-bg: rgba(255, 255, 255, 0.95);
@@ -80,6 +83,9 @@
   --accent-red: #fca5a5;
   --accent-red-border: rgba(248, 113, 113, 0.4);
   --accent-red-bg: #1f1f23;
+  --accent-red-tint: rgba(248, 113, 113, 0.15);
+  --accent-emerald-tint: rgba(52, 211, 153, 0.15);
+  --accent-emerald-border: rgba(52, 211, 153, 0.4);
 
   --header-bg: rgba(24, 24, 27, 0.95);
   --nav-bg: rgba(24, 24, 27, 0.95);

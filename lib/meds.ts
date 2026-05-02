@@ -238,6 +238,116 @@ export async function deleteRecipient(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// ─── PRN ("as needed") medicines ─────────────────────────────────
+
+export async function fetchActivePrnMedicines(): Promise<Medicine[]> {
+  const { data, error } = await supabase()
+    .from('medicines').select('*')
+    .eq('active', true).eq('is_prn', true).order('display_order');
+  if (error) throw error;
+  return (data ?? []) as Medicine[];
+}
+
+export async function fetchPrnIntakesForDate(dateKey: string): Promise<MedicineIntakeLog[]> {
+  const { data, error } = await supabase()
+    .from('medicine_intake_log').select('*')
+    .eq('scheduled_date', dateKey).is('dose_id', null);
+  if (error) throw error;
+  return (data ?? []) as MedicineIntakeLog[];
+}
+
+export async function logPrnIntake(medicineId: string, dateKey: string = localDateKey()): Promise<MedicineIntakeLog> {
+  const { data, error } = await supabase()
+    .from('medicine_intake_log')
+    .insert({ medicine_id: medicineId, scheduled_date: dateKey, taken_at: new Date().toISOString() })
+    .select().single();
+  if (error) throw error;
+  return data as MedicineIntakeLog;
+}
+
+// ─── Day color (calendar) ────────────────────────────────────────
+
+export type DayColor = 'green' | 'yellow' | 'red' | 'neutral';
+
+/**
+ * Color for a given past date, given the medicine/dose/log dataset.
+ * PRN medicines are excluded from the expected count (they have no doses).
+ * 0 missed → green, 1 missed → yellow, 2+ missed → red.
+ * 0 expected (no doses scheduled that day yet) → neutral.
+ */
+export function medsDayColor(
+  date: Date,
+  medicines: Medicine[],
+  doses: MedicineDose[],
+  logs: MedicineIntakeLog[],
+): DayColor {
+  const medById = new Map(medicines.map(m => [m.id, m]));
+  const dateKey = localDateKey(date);
+  let scheduled = 0;
+  let taken = 0;
+  for (const dose of doses) {
+    const med = medById.get(dose.medicine_id);
+    if (!med || med.is_prn) continue;
+    const created = new Date(med.created_at);
+    if (!isDoseScheduledOn(dose, date, { notBefore: created })) continue;
+    scheduled++;
+    if (logs.some(l => l.dose_id === dose.id && l.scheduled_date === dateKey)) taken++;
+  }
+  if (scheduled === 0) return 'neutral';
+  const missed = scheduled - taken;
+  if (missed === 0) return 'green';
+  if (missed === 1) return 'yellow';
+  return 'red';
+}
+
+// ─── Day detail (calendar tap) ───────────────────────────────────
+
+export type MedsDayDetailItem =
+  | { kind: 'scheduled'; medicine: Medicine; dose: MedicineDose; taken: boolean; takenAt: string | null }
+  | { kind: 'prn'; medicine: Medicine; takenAt: string };
+
+export function buildMedsDayDetail(
+  date: Date,
+  medicines: Medicine[],
+  doses: MedicineDose[],
+  logs: MedicineIntakeLog[],
+): MedsDayDetailItem[] {
+  const dateKey = localDateKey(date);
+  const medById = new Map(medicines.map(m => [m.id, m]));
+  const items: MedsDayDetailItem[] = [];
+
+  for (const dose of doses) {
+    const med = medById.get(dose.medicine_id);
+    if (!med || med.is_prn) continue;
+    const created = new Date(med.created_at);
+    if (!isDoseScheduledOn(dose, date, { notBefore: created })) continue;
+    const log = logs.find(l => l.dose_id === dose.id && l.scheduled_date === dateKey);
+    items.push({
+      kind: 'scheduled', medicine: med, dose,
+      taken: !!log, takenAt: log?.taken_at ?? null,
+    });
+  }
+
+  for (const log of logs) {
+    if (log.scheduled_date !== dateKey) continue;
+    if (log.dose_id !== null) continue;             // scheduled, already handled above
+    if (!log.medicine_id) continue;
+    const med = medById.get(log.medicine_id);
+    if (!med) continue;
+    items.push({ kind: 'prn', medicine: med, takenAt: log.taken_at });
+  }
+
+  items.sort((a, b) => {
+    if (a.kind === 'scheduled' && b.kind === 'scheduled') {
+      return a.dose.time_of_day.localeCompare(b.dose.time_of_day);
+    }
+    if (a.kind === 'scheduled') return -1;
+    if (b.kind === 'scheduled') return 1;
+    return a.takenAt.localeCompare(b.takenAt);
+  });
+  return items;
+}
+
 // ─── Streak ──────────────────────────────────────────────────────
 
 export type DayAdherence = 'all' | 'partial' | 'none' | 'no_doses';

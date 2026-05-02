@@ -66,7 +66,8 @@ export default function ManageMedsPage() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-app truncate">{m.name}</div>
                 <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                  {dCount} dose{dCount === 1 ? '' : 's'}{m.active ? '' : ' · paused'}
+                  {m.is_prn ? 'as needed' : `${dCount} dose${dCount === 1 ? '' : 's'}`}
+                  {m.active ? '' : ' · paused'}
                 </div>
               </div>
             </Link>

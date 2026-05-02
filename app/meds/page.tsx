@@ -1,39 +1,85 @@
 // app/meds/page.tsx
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Pill, Settings as Cog, AlertTriangle } from 'lucide-react';
 import {
   fetchScheduledDosesForDate, getSignedImageUrls, logDoseTaken, undoDoseTaken,
-  localDateKey,
+  localDateKey, fetchActivePrnMedicines, fetchPrnIntakesForDate, logPrnIntake,
+  fetchAllMedicinesWithDoses, fetchIntakeLogsBetween, medsDayColor,
 } from '@/lib/meds';
-import type { ScheduledDoseToday } from '@/lib/meds-types';
+import type {
+  ScheduledDoseToday, Medicine, MedicineDose, MedicineIntakeLog,
+} from '@/lib/meds-types';
 import MedCard from './components/MedCard';
 import OverdueBanner from './components/OverdueBanner';
+import PrnCard from './components/PrnCard';
+import MedsDayDetail from './components/MedsDayDetail';
+import MonthCalendar from '@/app/components/MonthCalendar';
 
 const REFRESH_MS = 60_000;   // re-render once a minute so "overdue" picks up
 
 export default function MedsPage() {
   const [items, setItems] = useState<ScheduledDoseToday[] | null>(null);
+  const [prnMeds, setPrnMeds] = useState<Medicine[]>([]);
+  const [prnIntakes, setPrnIntakes] = useState<MedicineIntakeLog[]>([]);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
+  // Calendar
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [allMeds, setAllMeds] = useState<Medicine[]>([]);
+  const [allDoses, setAllDoses] = useState<MedicineDose[]>([]);
+  const [monthLogs, setMonthLogs] = useState<MedicineIntakeLog[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const today = localDateKey();
+
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const today = localDateKey();
-      const next = await fetchScheduledDosesForDate(today);
-      const paths = next.map(i => i.medicine.image_path).filter((p): p is string => !!p);
+      const todayKey = localDateKey();
+      const [next, prn, intakes, all] = await Promise.all([
+        fetchScheduledDosesForDate(todayKey),
+        fetchActivePrnMedicines(),
+        fetchPrnIntakesForDate(todayKey),
+        fetchAllMedicinesWithDoses(),
+      ]);
+      const paths = [
+        ...next.map(i => i.medicine.image_path),
+        ...prn.map(m => m.image_path),
+      ].filter((p): p is string => !!p);
       const urls = paths.length ? await getSignedImageUrls(paths) : {};
       setItems(next);
+      setPrnMeds(prn);
+      setPrnIntakes(intakes);
       setImageUrls(urls);
+      setAllMeds(all.medicines);
+      setAllDoses(all.doses);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load meds');
     }
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Reload month-range intake logs when cursor changes
+  useEffect(() => {
+    let alive = true;
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth();
+    const startKey = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const endDay = new Date(y, m + 1, 0).getDate();
+    const endKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    fetchIntakeLogsBetween(startKey, endKey).then((data) => {
+      if (alive) setMonthLogs(data);
+    });
+    return () => { alive = false; };
+  }, [cursor]);
 
   // Tick every minute so "overdue" status recomputes without user action
   useEffect(() => {
@@ -51,6 +97,15 @@ export default function MedsPage() {
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update');
+    }
+  };
+
+  const onTakePrn = async (medicineId: string) => {
+    try {
+      await logPrnIntake(medicineId, localDateKey());
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to log');
     }
   };
 
@@ -79,6 +134,13 @@ export default function MedsPage() {
   // Group by time-of-day
   const groups = groupByTimeWindow(items);
 
+  const dayColor = (dateKey: string) => {
+    if (dateKey === today) return 'neutral' as const;
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const dt = new Date(y, m - 1, d, 12, 0, 0);
+    return medsDayColor(dt, allMeds, allDoses, monthLogs);
+  };
+
   return (
     <div className="px-4 py-4 pb-24" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
       <div className="flex items-center justify-between mb-3">
@@ -91,7 +153,7 @@ export default function MedsPage() {
 
       <OverdueBanner scheduled={items} />
 
-      {items.length === 0 && (
+      {items.length === 0 && prnMeds.length === 0 && (
         <div className="rounded-xl border p-6 text-center"
           style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
           <Pill size={28} className="mx-auto mb-2 opacity-60" />
@@ -114,6 +176,44 @@ export default function MedsPage() {
           ))}
         </section>
       ))}
+
+      {prnMeds.length > 0 && (
+        <section className="mb-5">
+          <div className="text-[10px] font-medium tracking-widest mb-2 uppercase"
+            style={{ color: 'var(--text-secondary)' }}>As Needed</div>
+          {prnMeds.map(m => (
+            <PrnCard
+              key={m.id}
+              medicine={m}
+              imageUrl={m.image_path ? (imageUrls[m.image_path] ?? null) : null}
+              intakesToday={prnIntakes.filter(l => l.medicine_id === m.id)}
+              onTake={() => onTakePrn(m.id)}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* Month calendar */}
+      <section className="mt-2">
+        <div className="text-[10px] font-medium tracking-widest mb-2 uppercase"
+          style={{ color: 'var(--text-secondary)' }}>History</div>
+        <MonthCalendar
+          cursor={cursor}
+          onCursorChange={(d) => { setCursor(d); setSelectedDay(null); }}
+          dayColor={dayColor}
+          selectedDayKey={selectedDay}
+          onSelectDay={(k) => setSelectedDay(prev => prev === k ? null : k)}
+        />
+        {selectedDay && (
+          <MedsDayDetail
+            dateKey={selectedDay}
+            medicines={allMeds}
+            doses={allDoses}
+            logs={monthLogs}
+            onClose={() => setSelectedDay(null)}
+          />
+        )}
+      </section>
     </div>
   );
 }

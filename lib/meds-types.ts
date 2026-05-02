@@ -8,6 +8,7 @@ export type Medicine = {
   instructions: string | null;
   image_path: string | null;
   active: boolean;
+  is_prn: boolean;
   display_order: number;
   created_at: string;
   updated_at: string;
@@ -28,7 +29,8 @@ export type MedicineDose = {
 
 export type MedicineIntakeLog = {
   id: string;
-  dose_id: string;
+  dose_id: string | null;       // null = PRN intake (use medicine_id)
+  medicine_id: string | null;   // set only for PRN intakes
   scheduled_date: string;       // 'YYYY-MM-DD'
   taken_at: string;
   notes: string | null;

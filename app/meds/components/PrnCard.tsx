@@ -1,37 +1,35 @@
-// app/meds/components/MedCard.tsx
 'use client';
 import { useState } from 'react';
-import type { ScheduledDoseToday } from '@/lib/meds-types';
-import { combineDateAndTime } from '@/lib/meds';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatTime } from '../format';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import type { Medicine, MedicineIntakeLog } from '@/lib/meds-types';
 import PhotoLightbox from '@/app/components/PhotoLightbox';
 
-export default function MedCard({
-  item,
+export default function PrnCard({
+  medicine,
   imageUrl,
-  onToggle,
+  intakesToday,
+  onTake,
 }: {
-  item: ScheduledDoseToday;
+  medicine: Medicine;
   imageUrl: string | null;
-  onToggle: () => Promise<void>;
+  intakesToday: MedicineIntakeLog[];
+  onTake: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  const taken = item.taken_at !== null;
-  const now = new Date();
-  const due = combineDateAndTime(now, item.dose.time_of_day);
-  const past = now >= due;
-  const overdue = past && !taken;
+  const count = intakesToday.length;
+  const last = count > 0
+    ? [...intakesToday].sort((a, b) => b.taken_at.localeCompare(a.taken_at))[0]
+    : null;
 
-  const handleCheck = async (e: React.MouseEvent) => {
+  const handleTake = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (pending) return;
     setPending(true);
     if (navigator.vibrate) navigator.vibrate(10);
-    try { await onToggle(); } finally { setPending(false); }
+    try { await onTake(); } finally { setPending(false); }
   };
 
   const openLightbox = (e: React.MouseEvent) => {
@@ -39,18 +37,14 @@ export default function MedCard({
     setLightboxOpen(true);
   };
 
-  const bg = taken
-    ? 'var(--accent-emerald-tint)'
-    : overdue ? 'var(--accent-red-tint)' : 'var(--bg-secondary)';
-  const border = taken
-    ? 'var(--accent-emerald-border)'
-    : overdue ? 'var(--accent-red-border)' : 'var(--border-primary)';
-
   return (
     <div
       onClick={() => setExpanded(v => !v)}
       className="rounded-xl border p-3 mb-2 transition-colors cursor-pointer active:scale-[0.99]"
-      style={{ background: bg, borderColor: border }}
+      style={{
+        background: count > 0 ? 'var(--accent-emerald-tint)' : 'var(--bg-secondary)',
+        borderColor: count > 0 ? 'var(--accent-emerald-border)' : 'var(--border-primary)',
+      }}
     >
       <div className="flex items-center gap-3">
         {imageUrl ? (
@@ -65,31 +59,33 @@ export default function MedCard({
             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>💊</div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-app truncate">{item.medicine.name}</div>
+          <div className="text-sm font-semibold text-app truncate">{medicine.name}</div>
           <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            {formatTime(item.dose.time_of_day)}
-            {item.dose.label ? ` · ${item.dose.label}` : ''}
+            {count === 0
+              ? 'Not taken today'
+              : `Taken ${count}× today${last ? ' · last ' + new Date(last.taken_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}`}
           </div>
         </div>
         <button
-          onClick={handleCheck}
+          onClick={handleTake}
           disabled={pending}
-          aria-label={taken ? 'Undo' : 'Mark taken'}
-          className="w-10 h-10 rounded-lg border flex items-center justify-center transition"
+          aria-label="Took it"
+          className="px-3 h-10 rounded-lg border flex items-center gap-1 text-sm font-medium transition"
           style={{
-            background: taken ? 'var(--accent-emerald)' : 'transparent',
-            borderColor: taken ? 'var(--accent-emerald)' : (overdue ? 'var(--accent-red-border)' : 'var(--border-secondary)'),
+            background: 'var(--accent-emerald)',
+            borderColor: 'var(--accent-emerald)',
+            color: 'white',
           }}
         >
-          {taken && <Check size={20} color="white" />}
+          <Plus size={16} /> Took it
         </button>
       </div>
       {expanded && (
         <div className="mt-3 pt-3 border-t text-xs space-y-1.5"
           style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
-          {item.medicine.purpose && <div><strong style={{ color: 'var(--text-primary)' }}>For:</strong> {item.medicine.purpose}</div>}
-          {item.medicine.instructions && <div><strong style={{ color: 'var(--text-primary)' }}>How:</strong> {item.medicine.instructions}</div>}
-          {!item.medicine.purpose && !item.medicine.instructions && (
+          {medicine.purpose && <div><strong style={{ color: 'var(--text-primary)' }}>For:</strong> {medicine.purpose}</div>}
+          {medicine.instructions && <div><strong style={{ color: 'var(--text-primary)' }}>How:</strong> {medicine.instructions}</div>}
+          {!medicine.purpose && !medicine.instructions && (
             <div style={{ color: 'var(--text-tertiary)' }}>No notes yet.</div>
           )}
           <div className="pt-1 flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
@@ -101,7 +97,7 @@ export default function MedCard({
       {lightboxOpen && imageUrl && (
         <PhotoLightbox
           src={imageUrl}
-          alt={item.medicine.name}
+          alt={medicine.name}
           onClose={() => setLightboxOpen(false)}
         />
       )}

@@ -43,6 +43,7 @@ export default function MedForm({
   const [purpose, setPurpose] = useState(medicine?.purpose ?? '');
   const [instructions, setInstructions] = useState(medicine?.instructions ?? '');
   const [active, setActive] = useState(medicine?.active ?? true);
+  const [isPrn, setIsPrn] = useState(medicine?.is_prn ?? false);
   const [imagePath, setImagePath] = useState<string | null>(medicine?.image_path ?? null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [doseDrafts, setDoseDrafts] = useState<DoseDraft[]>(
@@ -98,13 +99,15 @@ export default function MedForm({
 
   const onSave = async () => {
     if (!name.trim()) { setError('Name is required.'); return; }
-    if (doseDrafts.length === 0) { setError('Add at least one dose.'); return; }
-    for (const d of doseDrafts) {
-      if (d.cadence === 'custom_days' && d.days_of_week.length === 0) {
-        setError('Pick at least one day for "Specific days" doses.'); return;
-      }
-      if (d.cadence === 'every_n_days' && (!d.interval_days || d.interval_days < 1)) {
-        setError('Interval must be at least 1 day.'); return;
+    if (!isPrn) {
+      if (doseDrafts.length === 0) { setError('Add at least one dose.'); return; }
+      for (const d of doseDrafts) {
+        if (d.cadence === 'custom_days' && d.days_of_week.length === 0) {
+          setError('Pick at least one day for "Specific days" doses.'); return;
+        }
+        if (d.cadence === 'every_n_days' && (!d.interval_days || d.interval_days < 1)) {
+          setError('Interval must be at least 1 day.'); return;
+        }
       }
     }
     setBusy(true); setError(null);
@@ -114,6 +117,7 @@ export default function MedForm({
         purpose: purpose.trim() || null,
         instructions: instructions.trim() || null,
         active,
+        is_prn: isPrn,
         image_path: imagePath,
       };
       let medId = medicine?.id;
@@ -123,18 +127,23 @@ export default function MedForm({
         const created = await createMedicine(medRow);
         medId = created.id;
       }
-      const cleanedDoses = doseDrafts.map(d => ({
-        id: d.id,
-        time_of_day: d.time_of_day,
-        cadence: d.cadence,
-        days_of_week: d.cadence === 'weekdays' ? [1, 2, 3, 4, 5]
-          : d.cadence === 'custom_days' ? d.days_of_week
-          : null,
-        interval_days: d.cadence === 'every_n_days' ? d.interval_days : null,
-        start_date: d.cadence === 'every_n_days' ? d.start_date : null,
-        label: d.label.trim() || null,
-      }));
-      await upsertDoses(medId!, cleanedDoses as any);
+      if (isPrn) {
+        // PRN meds have no scheduled doses — clear any existing
+        await upsertDoses(medId!, []);
+      } else {
+        const cleanedDoses = doseDrafts.map(d => ({
+          id: d.id,
+          time_of_day: d.time_of_day,
+          cadence: d.cadence,
+          days_of_week: d.cadence === 'weekdays' ? [1, 2, 3, 4, 5]
+            : d.cadence === 'custom_days' ? d.days_of_week
+            : null,
+          interval_days: d.cadence === 'every_n_days' ? d.interval_days : null,
+          start_date: d.cadence === 'every_n_days' ? d.start_date : null,
+          label: d.label.trim() || null,
+        }));
+        await upsertDoses(medId!, cleanedDoses as any);
+      }
       router.push('/settings/manage-meds');
     } catch (err) {
       setError((err as Error).message);
@@ -215,19 +224,37 @@ export default function MedForm({
         </button>
       </Field>
 
-      {/* Doses */}
-      <div className="text-[10px] font-medium tracking-widest mb-2 mt-4" style={{ color: 'var(--text-secondary)' }}>DOSES</div>
-      {doseDrafts.map((d, i) => (
-        <DoseEditor key={i} value={d}
-          onChange={p => updateDose(i, p)}
-          onRemove={() => removeDose(i)}
-          canRemove={doseDrafts.length > 1} />
-      ))}
-      <button type="button" onClick={addDose}
-        className="w-full py-2 mb-4 text-sm rounded-md border flex items-center justify-center gap-1"
-        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
-        <Plus size={14} /> Add dose
-      </button>
+      {/* PRN ("as needed") toggle */}
+      <Field label="As needed (PRN)">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setIsPrn(!isPrn)}
+            className="w-11 h-6 rounded-full relative transition-colors"
+            style={{ background: isPrn ? 'var(--accent-emerald)' : 'var(--border-secondary)' }}>
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrn ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            No schedule. Logged when taken. Never counted as missed.
+          </span>
+        </div>
+      </Field>
+
+      {/* Doses (hidden for PRN) */}
+      {!isPrn && (
+        <>
+          <div className="text-[10px] font-medium tracking-widest mb-2 mt-4" style={{ color: 'var(--text-secondary)' }}>DOSES</div>
+          {doseDrafts.map((d, i) => (
+            <DoseEditor key={i} value={d}
+              onChange={p => updateDose(i, p)}
+              onRemove={() => removeDose(i)}
+              canRemove={doseDrafts.length > 1} />
+          ))}
+          <button type="button" onClick={addDose}
+            className="w-full py-2 mb-4 text-sm rounded-md border flex items-center justify-center gap-1"
+            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+            <Plus size={14} /> Add dose
+          </button>
+        </>
+      )}
 
       {error && <div className="text-xs mb-3" style={{ color: 'var(--accent-red)' }}>{error}</div>}
 

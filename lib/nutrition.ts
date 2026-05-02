@@ -131,6 +131,48 @@ export function monthlySummary(
   });
 }
 
+// ─── Day color (calendar) ────────────────────────────────────────
+
+export type DayColor = 'green' | 'yellow' | 'red' | 'neutral';
+
+/** Earliest log_date in the dataset (used as the calendar's "tracking started" floor). */
+export function earliestLogDate(rows: NutritionLogRow[]): string | null {
+  if (rows.length === 0) return null;
+  let min = rows[0].log_date;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].log_date < min) min = rows[i].log_date;
+  }
+  return min;
+}
+
+/**
+ * Color for a given date. Days before tracking started → neutral.
+ * 0 missed → green, 1 missed → yellow, 2+ missed → red.
+ */
+export function nutritionDayColor(
+  dateKey: string,
+  rows: NutritionLogRow[],
+  earliestKey: string | null,
+): DayColor {
+  if (earliestKey && dateKey < earliestKey) return 'neutral';
+  const checked = new Set<NutritionItemKey>();
+  for (const r of rows) {
+    if (r.log_date === dateKey) checked.add(r.item_key);
+  }
+  const missed = TOTAL_ITEMS - checked.size;
+  if (missed === 0) return 'green';
+  if (missed === 1) return 'yellow';
+  return 'red';
+}
+
+/** For day-detail: the 10 items with checked state on a given day. */
+export function nutritionDayDetail(dateKey: string, rows: NutritionLogRow[]) {
+  const checked = new Set<NutritionItemKey>(
+    rows.filter(r => r.log_date === dateKey).map(r => r.item_key)
+  );
+  return NUTRITION_ITEMS.map(item => ({ item, checked: checked.has(item.key) }));
+}
+
 // ─── Data access ─────────────────────────────────────────────────
 export async function fetchNutritionLogs(daysBack: number = 35): Promise<NutritionLogRow[]> {
   const start = addDays(localDateKey(), -daysBack);
@@ -141,6 +183,18 @@ export async function fetchNutritionLogs(daysBack: number = 35): Promise<Nutriti
     .order('log_date', { ascending: false });
   if (error) {
     console.warn('[nutrition] fetch failed:', error);
+    return [];
+  }
+  return (data ?? []) as NutritionLogRow[];
+}
+
+export async function fetchNutritionLogsBetween(startKey: string, endKey: string): Promise<NutritionLogRow[]> {
+  const { data, error } = await supabase()
+    .from('nutrition_log').select('*')
+    .gte('log_date', startKey).lte('log_date', endKey)
+    .order('log_date', { ascending: false });
+  if (error) {
+    console.warn('[nutrition] fetch range failed:', error);
     return [];
   }
   return (data ?? []) as NutritionLogRow[];
