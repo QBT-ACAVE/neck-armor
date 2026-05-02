@@ -1,5 +1,4 @@
 // lib/meds.ts
-'use client';
 import { supabase } from './supabase';
 import { isDoseScheduledOn } from './cadence';
 import type {

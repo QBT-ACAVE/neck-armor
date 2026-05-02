@@ -3,6 +3,7 @@
 import type { ScheduledDoseToday } from '@/lib/meds-types';
 import { combineDateAndTime } from '@/lib/meds';
 import { AlertTriangle } from 'lucide-react';
+import { formatTime } from '../format';
 
 export default function OverdueBanner({ scheduled }: { scheduled: ScheduledDoseToday[] }) {
   const now = new Date();
@@ -33,11 +34,4 @@ export default function OverdueBanner({ scheduled }: { scheduled: ScheduledDoseT
       <span className="text-xs font-medium">{text}</span>
     </div>
   );
-}
-
-function formatTime(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
-  const period = h >= 12 ? 'pm' : 'am';
-  const h12 = ((h + 11) % 12) + 1;
-  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, '0')}${period}`;
 }

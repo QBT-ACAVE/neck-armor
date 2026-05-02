@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Pill, Settings as Cog } from 'lucide-react';
+import { Pill, Settings as Cog, AlertTriangle } from 'lucide-react';
 import {
   fetchScheduledDosesForDate, getSignedImageUrls, logDoseTaken, undoDoseTaken,
   localDateKey,
@@ -16,16 +16,22 @@ const REFRESH_MS = 60_000;   // re-render once a minute so "overdue" picks up
 export default function MedsPage() {
   const [items, setItems] = useState<ScheduledDoseToday[] | null>(null);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-  const [tick, setTick] = useState(0);
-  const today = localDateKey();
+  const [error, setError] = useState<string | null>(null);
+  const [, setTick] = useState(0);
 
   const reload = useCallback(async () => {
-    const next = await fetchScheduledDosesForDate(today);
-    const paths = next.map(i => i.medicine.image_path).filter((p): p is string => !!p);
-    const urls = paths.length ? await getSignedImageUrls(paths) : {};
-    setItems(next);
-    setImageUrls(urls);
-  }, [today]);
+    setError(null);
+    try {
+      const today = localDateKey();
+      const next = await fetchScheduledDosesForDate(today);
+      const paths = next.map(i => i.medicine.image_path).filter((p): p is string => !!p);
+      const urls = paths.length ? await getSignedImageUrls(paths) : {};
+      setItems(next);
+      setImageUrls(urls);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load meds');
+    }
+  }, []);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -36,13 +42,35 @@ export default function MedsPage() {
   }, []);
 
   const onToggle = async (item: ScheduledDoseToday) => {
-    if (item.taken_at && item.intake_log_id) {
-      await undoDoseTaken(item.intake_log_id);
-    } else {
-      await logDoseTaken(item.dose.id, today);
+    try {
+      if (item.taken_at && item.intake_log_id) {
+        await undoDoseTaken(item.intake_log_id);
+      } else {
+        await logDoseTaken(item.dose.id, localDateKey());
+      }
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update');
     }
-    await reload();
   };
+
+  if (error) {
+    return (
+      <div className="px-4 py-4" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
+        <div className="rounded-xl border p-4 flex items-start gap-3"
+          style={{ background: 'var(--accent-red-bg)', borderColor: 'var(--accent-red-border)', color: 'var(--accent-red)' }}>
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <div className="font-semibold mb-1">Couldn’t load meds</div>
+            <div className="text-xs opacity-80 mb-2">{error}</div>
+            <button onClick={reload}
+              className="text-xs px-3 py-1.5 rounded-md border"
+              style={{ borderColor: 'var(--accent-red-border)' }}>Retry</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (items === null) {
     return <div className="px-4 py-4 text-app" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>Loading…</div>;
@@ -52,7 +80,7 @@ export default function MedsPage() {
   const groups = groupByTimeWindow(items);
 
   return (
-    <div className="px-4 py-4 pb-24" style={{ paddingTop: 'calc(var(--safe-top) + 16px)', /* tick */ ['--meds-tick' as string]: tick }}>
+    <div className="px-4 py-4 pb-24" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-xl font-semibold text-app">Meds</h1>
         <Link href="/settings/manage-meds" className="text-xs flex items-center gap-1"
