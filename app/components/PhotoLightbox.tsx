@@ -1,5 +1,6 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function PhotoLightbox({
@@ -9,21 +10,37 @@ export default function PhotoLightbox({
   alt?: string;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4"
+      className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4"
       style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div className="flex justify-end mb-3 shrink-0">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Close"
           className="p-3 bg-black/70 rounded-full text-white active:scale-95"
         >
@@ -34,10 +51,11 @@ export default function PhotoLightbox({
         <img
           src={src}
           alt={alt ?? ''}
-          onClick={onClose}
+          onClick={handleClose}
           className="max-w-full max-h-full object-contain rounded-lg cursor-zoom-out"
         />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
