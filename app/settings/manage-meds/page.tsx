@@ -11,12 +11,15 @@ export default function ManageMedsPage() {
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const { medicines, doses } = await fetchAllMedicinesWithDoses();
       const paths = medicines.map(m => m.image_path).filter((p): p is string => !!p);
       const urls = paths.length ? await getSignedImageUrls(paths) : {};
+      if (cancelled) return;
       setMeds(medicines); setDoses(doses); setImageUrls(urls);
     })();
+    return () => { cancelled = true; };
   }, []);
 
   if (meds === null) return <div className="px-4 py-4 text-app" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>Loading…</div>;

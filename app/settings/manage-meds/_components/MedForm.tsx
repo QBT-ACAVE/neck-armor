@@ -62,8 +62,15 @@ export default function MedForm({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (imagePath) getSignedImageUrl(imagePath).then(setImageUrl).catch(() => setImageUrl(null));
-    else setImageUrl(null);
+    let cancelled = false;
+    if (imagePath) {
+      getSignedImageUrl(imagePath)
+        .then(u => { if (!cancelled) setImageUrl(u); })
+        .catch(() => { if (!cancelled) setImageUrl(null); });
+    } else {
+      setImageUrl(null);
+    }
+    return () => { cancelled = true; };
   }, [imagePath]);
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

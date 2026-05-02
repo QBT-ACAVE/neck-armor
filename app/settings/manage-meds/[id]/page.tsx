@@ -10,7 +10,11 @@ export default function EditMedPage() {
   const [data, setData] = useState<{ medicine: Medicine; doses: MedicineDose[] } | null | 'missing'>(null);
 
   useEffect(() => {
-    fetchMedicine(id).then(d => setData(d ?? 'missing'));
+    let cancelled = false;
+    fetchMedicine(id).then(d => {
+      if (!cancelled) setData(d ?? 'missing');
+    });
+    return () => { cancelled = true; };
   }, [id]);
 
   if (data === null) return <div className="px-4 py-4 text-app" style={{ paddingTop: 'calc(var(--safe-top) + 16px)' }}>Loading…</div>;
