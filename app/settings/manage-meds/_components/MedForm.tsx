@@ -174,7 +174,7 @@ export default function MedForm({
         <div className="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center"
           style={{ background: 'var(--bg-tertiary)' }}>
           {imageUrl
-            ? <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+            ? <img src={imageUrl} alt="" className="w-full h-full object-contain" />
             : <Camera size={28} style={{ color: 'var(--text-tertiary)' }} />}
         </div>
         <div>

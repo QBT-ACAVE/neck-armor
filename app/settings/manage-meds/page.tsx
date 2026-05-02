@@ -62,7 +62,7 @@ export default function ManageMedsPage() {
               }}>
               <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center"
                 style={{ background: 'var(--bg-tertiary)' }}>
-                {url ? <img src={url} alt="" className="w-full h-full object-cover" />
+                {url ? <img src={url} alt="" className="w-full h-full object-contain" />
                   : <span className="text-xl">💊</span>}
               </div>
               <div className="flex-1 min-w-0">

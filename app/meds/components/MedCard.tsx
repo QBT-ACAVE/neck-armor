@@ -73,7 +73,7 @@ export default function MedCard({
             src={imageUrl}
             alt=""
             onClick={openLightbox}
-            className="w-14 h-14 rounded-lg object-cover bg-white/5 cursor-zoom-in"
+            className="w-14 h-14 rounded-lg object-contain bg-white/5 cursor-zoom-in"
           />
         ) : (
           <div className="w-14 h-14 rounded-lg flex items-center justify-center text-xl"
