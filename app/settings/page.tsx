@@ -12,11 +12,25 @@ export default function SettingsPage() {
   const [notifStatus, setNotifStatus] = useState<string>('');
   const [theme, setThemeState] = useState<Theme>('system');
   const [busy, setBusy] = useState(false);
+  const [lastSummary, setLastSummary] = useState<{ for_date: string; status: string; error: string | null; sent_at: string } | null>(null);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setS(loadSettings());
     setNotifStatus(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
     setThemeState(getTheme());
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase().from('notification_send_log')
+        .select('*').order('sent_at', { ascending: false }).limit(1);
+      if (data && data.length > 0) {
+        const r = data[0];
+        setLastSummary({ for_date: r.for_date, status: r.status, error: r.error, sent_at: r.sent_at });
+      }
+    })();
   }, []);
 
   const update = (patch: Partial<Settings>) => {
@@ -73,6 +87,11 @@ export default function SettingsPage() {
       await Promise.all([
         supabase().from('app_state').delete().neq('key', ''),
         supabase().from('nutrition_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('medicine_intake_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('medicine_doses').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('medicines').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('notification_send_log').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase().from('notification_recipients').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       ]);
       // Clear local cache
       for (const k of Object.keys(localStorage)) {
@@ -82,6 +101,23 @@ export default function SettingsPage() {
     } catch (e) {
       alert('Wipe failed: ' + (e as Error).message);
       setBusy(false);
+    }
+  };
+
+  const resendNow = async () => {
+    setResendBusy(true); setResendMsg(null);
+    try {
+      const secret = prompt('CRON_SECRET (only needed for local/manual calls — leave empty if Vercel-protected):');
+      const res = await fetch('/api/send-daily-summary?force=true', {
+        method: 'POST',
+        headers: secret ? { authorization: `Bearer ${secret}` } : {},
+      });
+      const j = await res.json();
+      setResendMsg(res.ok ? `Sent: ${j.taken}/${j.total}` : `Error: ${j.error}`);
+    } catch (e) {
+      setResendMsg('Error: ' + (e as Error).message);
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -134,6 +170,23 @@ export default function SettingsPage() {
           <div className="text-xs" style={{ color: 'var(--accent-emerald)' }}>✓ Enabled</div>
         )}
         <div className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>Tip: For best results, add to home screen first (Share → Add to Home Screen).</div>
+      </div>
+
+      <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>DAILY RECAP</div>
+      <div className="rounded-lg p-3 mb-6 border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+        <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+          {lastSummary
+            ? <>Last sent <strong style={{ color: 'var(--text-primary)' }}>{lastSummary.for_date}</strong> · {lastSummary.status}{lastSummary.error ? ` (${lastSummary.error})` : ''}</>
+            : 'No summaries sent yet.'}
+        </div>
+        <button onClick={resendNow} disabled={resendBusy}
+          className="w-full py-2 mt-2 text-sm rounded-md font-medium border disabled:opacity-50"
+          style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+          {resendBusy ? 'Sending\u2026' : 'Resend today\u2019s summary now'}
+        </button>
+        {resendMsg && (
+          <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>{resendMsg}</div>
+        )}
       </div>
 
       <div className="text-[10px] font-medium tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>MEDICINE</div>
