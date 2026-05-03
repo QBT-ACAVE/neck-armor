@@ -216,12 +216,23 @@ export async function getSignedImageUrls(
   const valid = paths.filter(Boolean);
   if (valid.length === 0) return {};
 
-  // createSignedUrls (batched) doesn't accept transform — use singular calls in parallel
+  // createSignedUrls (batched) doesn't accept transform — use singular calls in parallel.
+  // Tolerate per-file failures (stale image_path → "object not found") so one bad row
+  // doesn't blow up the whole page; the card falls back to its placeholder.
   if (transform) {
-    const entries = await Promise.all(
+    const results = await Promise.allSettled(
       valid.map(async (p) => [p, await getSignedImageUrl(p, transform)] as const)
     );
-    return Object.fromEntries(entries);
+    const out: Record<string, string> = {};
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        const [p, url] = r.value;
+        out[p] = url;
+      } else {
+        console.warn('[meds] signed-url failed:', r.reason?.message ?? r.reason);
+      }
+    }
+    return out;
   }
 
   const { data, error } = await supabase().storage
