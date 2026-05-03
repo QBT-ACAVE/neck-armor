@@ -1,4 +1,4 @@
-const CACHE = 'neck-armor-v6';
+const CACHE = 'neck-armor-v7';
 const ASSETS = ['/', '/workout', '/calendar', '/catches', '/nutrition', '/history', '/settings', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

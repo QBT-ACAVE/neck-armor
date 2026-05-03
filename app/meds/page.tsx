@@ -54,7 +54,7 @@ export default function MedsPage() {
         ...prn.map(m => m.image_path),
       ].filter((p): p is string => !!p);
       const urls = paths.length
-        ? await getSignedImageUrls(paths, { width: 240, quality: 70 })
+        ? await getSignedImageUrls(paths, { width: 320, quality: 70 })
         : {};
       setItems(next);
       setPrnMeds(prn);

@@ -16,7 +16,7 @@ export default function ManageMedsPage() {
       const { medicines, doses } = await fetchAllMedicinesWithDoses();
       const paths = medicines.map(m => m.image_path).filter((p): p is string => !!p);
       const urls = paths.length
-        ? await getSignedImageUrls(paths, { width: 240, quality: 70 })
+        ? await getSignedImageUrls(paths, { width: 240, quality: 75 })
         : {};
       if (cancelled) return;
       setMeds(medicines); setDoses(doses); setImageUrls(urls);
@@ -60,9 +60,9 @@ export default function ManageMedsPage() {
                 borderColor: 'var(--border-primary)',
                 opacity: m.active ? 1 : 0.5,
               }}>
-              <div className="w-12 h-16 rounded-lg overflow-hidden flex items-center justify-center shrink-0"
+              <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center shrink-0 p-1"
                 style={{ background: 'var(--bg-tertiary)' }}>
-                {url ? <img src={url} alt="" className="w-full h-full object-contain" />
+                {url ? <img src={url} alt="" className="max-w-full max-h-full object-contain" />
                   : <span className="text-xl">💊</span>}
               </div>
               <div className="flex-1 min-w-0">

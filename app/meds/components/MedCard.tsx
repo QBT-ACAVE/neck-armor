@@ -69,14 +69,19 @@ export default function MedCard({
       )}
       <div className="flex items-center gap-3">
         {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt=""
+          <div
             onClick={openLightbox}
-            className="w-14 h-20 rounded-lg object-contain bg-white/5 cursor-zoom-in shrink-0"
-          />
+            className="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in shrink-0 p-1"
+            style={{ background: 'var(--bg-tertiary)' }}
+          >
+            <img
+              src={imageUrl}
+              alt=""
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
         ) : (
-          <div className="w-14 h-20 rounded-lg flex items-center justify-center text-xl shrink-0"
+          <div className="w-20 h-20 rounded-lg flex items-center justify-center text-2xl shrink-0"
             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>💊</div>
         )}
         <div className="flex-1 min-w-0">
