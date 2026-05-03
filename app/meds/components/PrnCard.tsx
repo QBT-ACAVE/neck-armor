@@ -60,10 +60,10 @@ export default function PrnCard({
             src={imageUrl}
             alt=""
             onClick={openLightbox}
-            className="w-14 h-14 rounded-lg object-contain bg-white/5 cursor-zoom-in"
+            className="w-14 h-20 rounded-lg object-contain bg-white/5 cursor-zoom-in shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-lg flex items-center justify-center text-xl"
+          <div className="w-14 h-20 rounded-lg flex items-center justify-center text-xl shrink-0"
             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>💊</div>
         )}
         <div className="flex-1 min-w-0">

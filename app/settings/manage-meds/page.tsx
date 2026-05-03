@@ -60,7 +60,7 @@ export default function ManageMedsPage() {
                 borderColor: 'var(--border-primary)',
                 opacity: m.active ? 1 : 0.5,
               }}>
-              <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center"
+              <div className="w-12 h-16 rounded-lg overflow-hidden flex items-center justify-center shrink-0"
                 style={{ background: 'var(--bg-tertiary)' }}>
                 {url ? <img src={url} alt="" className="w-full h-full object-contain" />
                   : <span className="text-xl">💊</span>}
